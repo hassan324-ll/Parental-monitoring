@@ -10,9 +10,15 @@ export const routes: Routes = [
     title: 'Parent Sign In | FamilyGuard',
     loadComponent: () => import('./features/auth/auth-page').then((m) => m.AuthPage),
   },
+  {
+    path: 'children',
+    title: 'My Children | FamilyGuard',
+    canActivate: [parentAuthGuard],
+    loadComponent: () =>
+      import('./features/family/family-management').then((m) => m.FamilyManagement),
+  },
   ...[
     ['dashboard', 'Dashboard'],
-    ['children', 'My Children'],
     ['devices', 'Connected Devices'],
     ['activity', 'Application Activity'],
     ['screen-time', 'Screen Time'],
