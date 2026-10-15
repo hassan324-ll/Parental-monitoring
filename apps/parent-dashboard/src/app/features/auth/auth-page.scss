@@ -1,0 +1,31 @@
+.auth-page {
+  display: grid;
+  min-height: calc(100vh - 100px);
+  place-items: center;
+  padding: 24px;
+  background: #f8fafc;
+}
+.auth-card {
+  width: min(100%, 470px);
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: 0 12px 36px #0f172a0a;
+}
+.eyebrow { color: #2563eb; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+h1 { margin: 12px 0; font-size: 28px; letter-spacing: -.02em; color: #0f172a; }
+.description, .disclaimer { color: #64748b; line-height: 1.6; }
+form { display: grid; gap: 10px; margin-top: 26px; }
+label { color: #334155; font-weight: 600; font-size: 13px; margin-top: 8px; }
+input { border: 1px solid #cbd5e1; border-radius: 10px; padding: 13px 14px; font: inherit; color: #0f172a; }
+input:focus { outline: 3px solid #bfdbfe; border-color: #2563eb; }
+form > button { margin-top: 14px; border: 0; border-radius: 10px; background: #2563eb; color: white; padding: 13px; font: inherit; font-weight: 700; cursor: pointer; }
+form > button:disabled { opacity: .55; cursor: not-allowed; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+.actions button { border: 0; background: transparent; color: #1d4ed8; cursor: pointer; font: inherit; font-size: 13px; padding: 6px 0; }
+.notice, .error { border-radius: 10px; padding: 12px; line-height: 1.5; font-size: 13px; }
+.notice { background: #eff6ff; color: #1e40af; }
+.error { background: #fef2f2; color: #991b1b; }
+.disclaimer { font-size: 12px; margin-top: 25px; }
+@media (max-width: 600px) { .auth-page { padding: 12px; } .auth-card { padding: 22px; } }

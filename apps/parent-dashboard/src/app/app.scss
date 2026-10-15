@@ -1,95 +1,22 @@
-:host {
-  display: block;
-}
-.layout {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  min-height: 100vh;
-}
-aside {
-  background: white;
-  border-right: 1px solid #e2e8f0;
-  padding: 28px 20px;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 23px;
-  font-weight: 750;
-  color: #173b76;
-  text-decoration: none;
-}
-.shield {
-  background: #2563eb;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 12px;
-}
-.caption {
-  font-size: 10px;
-  letter-spacing: 0.13em;
-  color: #64748b;
-  margin-top: 36px;
-}
-nav {
-  display: grid;
-  gap: 4px;
-}
-nav a {
-  padding: 10px 14px;
-  color: #475569;
-  text-decoration: none;
-  border-radius: 8px;
-}
-nav a.active {
-  color: #1d4ed8;
-  background: #eff6ff;
-  font-weight: 650;
-}
-.disclosure {
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.8;
-  margin-top: 30px;
-}
-main {
-  min-width: 0;
-}
-header {
-  display: flex;
-  justify-content: space-between;
-  padding: 24px 40px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
-}
-.badge {
-  font-size: 12px;
-  color: #1d4ed8;
-  background: #eff6ff;
-  padding: 5px 10px;
-  border-radius: 20px;
-}
+:host { display: block; }
+.layout { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+aside { background: white; border-right: 1px solid #e2e8f0; padding: 28px 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 23px; font-weight: 750; color: #173b76; text-decoration: none; }
+.shield { background: #2563eb; color: white; padding: 8px 12px; border-radius: 12px; }
+.caption { font-size: 10px; letter-spacing: .13em; color: #64748b; margin-top: 36px; }
+nav { display: grid; gap: 4px; }
+nav a { padding: 10px 14px; color: #475569; text-decoration: none; border-radius: 8px; }
+nav a.active { color: #1d4ed8; background: #eff6ff; font-weight: 650; }
+.disclosure { font-size: 12px; color: #64748b; line-height: 1.8; margin-top: 30px; }
+main { min-width: 0; }
+header { display: flex; align-items: center; gap: 18px; padding: 24px 40px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+.badge { font-size: 12px; color: #1d4ed8; background: #eff6ff; padding: 5px 10px; border-radius: 20px; }
+.sign-out { margin-left: auto; background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 12px; color: #334155; cursor: pointer; }
 @media (max-width: 760px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-  aside {
-    padding: 18px;
-  }
-  nav {
-    display: flex;
-    overflow: auto;
-    margin-top: 15px;
-  }
-  nav a {
-    white-space: nowrap;
-  }
-  .caption,
-  .disclosure {
-    display: none;
-  }
-  header {
-    padding: 18px;
-  }
+  .layout { grid-template-columns: 1fr; }
+  aside { padding: 18px; }
+  nav { display: flex; overflow: auto; margin-top: 15px; }
+  nav a { white-space: nowrap; }
+  .caption, .disclosure { display: none; }
+  header { padding: 18px; }
 }
