@@ -65,10 +65,55 @@ describe('Firebase client fail-closed lifecycle', () => {
     expect(await service().verifiedUser()).toBeNull();
     expect(await service().idToken()).toBeNull();
   });
-  it('clears a partial login when provider reload fails', async () => {
+  it('rejects restored sessions when the provider reload fails', async () => {
     sdk.reload.mockRejectedValue(new Error('offline'));
-    await expect(service().login('parent@example.test', 'test')).rejects.toThrow('offline');
-    expect(sdk.signOut).toHaveBeenCalledWith(auth);
+    expect(await service().verifiedUser()).toBeNull();
+  });
+  it('uses fresh sign-in metadata once without redundant profile lookups', async () => {
+    await service().login(' parent@example.test ', 'test-password');
+    expect(sdk.signInWithEmailAndPassword).toHaveBeenCalledWith(
+      auth,
+      'parent@example.test',
+      'test-password',
+    );
+    expect(await service().verifiedUser()).toBe(user);
+    expect(sdk.reload).not.toHaveBeenCalled();
+    await service().verifiedUser();
+    expect(sdk.reload).toHaveBeenCalledTimes(1);
+  });
+  it('reloads when the post-login handoff has expired', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(10_000);
+    try {
+      await service().login('parent@example.test', 'test-password');
+      now.mockReturnValue(15_000);
+      await service().verifiedUser();
+      expect(sdk.reload).toHaveBeenCalledTimes(1);
+    } finally {
+      now.mockRestore();
+    }
+  });
+  it('does not hand off a fresh identity after logout', async () => {
+    await service().login('parent@example.test', 'test-password');
+    await service().logout();
+    auth.currentUser = null;
+    expect(await service().verifiedUser()).toBeNull();
+  });
+  it('does not reuse verification after the active user changes', async () => {
+    await service().login('parent@example.test', 'test-password');
+    const other = { emailVerified: false, getIdToken: vi.fn() };
+    auth.currentUser = other;
+    expect(await service().verifiedUser()).toBeNull();
+    expect(sdk.reload).toHaveBeenCalledWith(other);
+  });
+  it('rejects a sign-in result that is no longer the active session', async () => {
+    sdk.signInWithEmailAndPassword.mockImplementation(async () => {
+      auth.currentUser = null;
+      return { user };
+    });
+    await expect(service().login('parent@example.test', 'test-password')).rejects.toThrow(
+      'session changed',
+    );
+    expect(await service().verifiedUser()).toBeNull();
   });
   it('registers, sends verification and ends the unverified session', async () => {
     await service().register(' Synthetic ', ' parent@example.test ', 'test-password');

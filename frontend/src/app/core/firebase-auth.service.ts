@@ -35,6 +35,7 @@ export const FIREBASE_CLIENT = new InjectionToken('FamilyGuard Firebase client',
 export class FirebaseAuthService {
   private readonly auth: Auth | null;
   private readonly sdk = inject(FIREBASE_CLIENT);
+  private freshSignIn: { user: User; checkedAt: number } | null = null;
 
   constructor() {
     const options: FirebaseOptions | null = environment.firebaseConfig;
@@ -64,6 +65,7 @@ export class FirebaseAuthService {
 
   async register(name: string, email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
+    this.freshSignIn = null;
     const credential = await this.sdk.createUserWithEmailAndPassword(auth, email.trim(), password);
     try {
       await this.sdk.updateProfile(credential.user, { displayName: name.trim() });
@@ -75,12 +77,18 @@ export class FirebaseAuthService {
 
   async login(email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
+    this.freshSignIn = null;
     const credential = await this.sdk.signInWithEmailAndPassword(auth, email.trim(), password);
     try {
-      await this.sdk.reload(credential.user);
+      // Firebase sign-in already loads account info before returning UserCredential.
+      // Avoid a duplicate lookup; keep the verified-email and current-session checks.
+      if (auth.currentUser !== credential.user) {
+        throw new Error('The authentication session changed. Please sign in again.');
+      }
       if (!credential.user.emailVerified) {
         throw new Error('Please verify your email address before signing in.');
       }
+      this.freshSignIn = { user: credential.user, checkedAt: Date.now() };
     } catch (error) {
       await this.sdk.signOut(auth);
       throw error;
@@ -92,6 +100,7 @@ export class FirebaseAuthService {
   }
 
   async logout(): Promise<void> {
+    this.freshSignIn = null;
     if (this.auth) await this.sdk.signOut(this.auth);
   }
 
@@ -99,7 +108,13 @@ export class FirebaseAuthService {
     if (!this.auth) return null;
     await this.auth.authStateReady();
     const user = this.auth.currentUser;
+    const fresh = this.freshSignIn;
+    this.freshSignIn = null;
     if (!user) return null;
+    // One-use handoff to the immediate post-login guard, never a persisted cache.
+    // Later navigation/restored sessions still reload and fail closed on errors.
+    const age = fresh ? Date.now() - fresh.checkedAt : -1;
+    if (fresh?.user === user && user.emailVerified && age >= 0 && age < 5_000) return user;
     const alreadyVerified = user.emailVerified;
     try {
       await this.sdk.reload(user);
