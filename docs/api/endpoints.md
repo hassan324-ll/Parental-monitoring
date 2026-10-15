@@ -1,6 +1,25 @@
 # API contract
-Implemented: GET /api/v1/health, public, 200 application/json, {"status":"ok"}. No database details. Local CORS allows http://localhost:4200.
 
-Planned, NOT implemented: /api/v1/me; /families; /families/{family}/children; /devices; /device-pairings; /devices/{device}/permissions; /devices/{device}/usage; /devices/{device}/locations; /devices/{device}/screen-share-sessions; /alerts; /audit-logs.
+## Implemented in Phase 2A
 
-Protected calls require Authorization: Bearer <Firebase ID token> for parents, separately scoped device credentials for companions. Verify signature/audience/issuer/expiry before mapping Firebase UID. Request validation returns 422, missing identity 401, forbidden family 403 or concealed 404, rate limiting 429. Future success envelope: {"data":...}; errors: {"message":"...","errors":{}}. Never return stack traces or secrets. Pagination and idempotent device upload keys required before ingestion.
+- GET /api/v1/health — public; 200 {"status":"ok"}.
+- GET /api/v1/families — authenticated; lists families visible to the requesting user (20 per page).
+- POST /api/v1/families — authenticated; validates name (2–100 chars), creates family + owner membership transactionally; HTTP 201.
+- GET /api/v1/families/{family}/children — authenticated owner/member; paginated.
+- POST /api/v1/families/{family}/children — owner/parent membership only; validates display_name (1–100 chars); HTTP 201.
+
+## Authentication limitation (blocking real client integration)
+
+Laravel auth middleware currently rejects anonymous HTTP callers. Feature tests exercise authorization using Laravel actingAs(). Firebase bearer-token verification and identity mapping are NOT implemented. Do not expose these family APIs to production or claim Angular can sign in before a maintained Firebase verification SDK validates token signature, issuer, audience and expiry. Never add an anonymous development bypass.
+
+## Authorization behavior
+
+- Out-of-family family IDs: 404, including nested child requests.
+- Viewer family members: can list children but receive 403 on create.
+- Invalid inputs: 422. Unauthenticated: 401. Rate-limited: 429.
+- The caller does not control owner_id or child-family membership.
+- Family creation also creates the owner membership atomically.
+
+## Planned, not implemented
+
+Firebase sign-in, /api/v1/me, pairing, device credentials, permission records, usage ingestion, GPS locations, screen-share sessions, alerts and audit logs. Companion calls must use independently revocable device credentials.
