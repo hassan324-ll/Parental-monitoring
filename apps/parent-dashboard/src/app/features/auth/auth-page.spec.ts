@@ -1,12 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { FirebaseAuthService } from '../../core/firebase-auth.service';
 import { AuthPage } from './auth-page';
 
 describe('FamilyGuard parent authentication', () => {
-  it('fails closed until the Firebase web project is configured', async () => {
+  it('fails closed when Firebase configuration is unavailable', async () => {
     await TestBed.configureTestingModule({
       imports: [AuthPage],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: FirebaseAuthService, useValue: { configured: false } },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(AuthPage);
