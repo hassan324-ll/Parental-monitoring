@@ -108,32 +108,32 @@ GitHub Actions remains unavailable because of the account billing restriction do
 
 ### Files changed by the code corrections commit
 
-- apps/backend/AGENTS.md
-- apps/backend/app/Auth/FirebaseParentUserResolver.php
-- apps/backend/app/Auth/FirebaseTokenVerifier.php
-- apps/backend/app/Http/Controllers/Api/FamilyController.php
-- apps/backend/app/Http/Middleware/ThrottleParentAuthentication.php
-- apps/backend/bootstrap/app.php
-- apps/backend/database/migrations/2026_10_15_000003_index_family_children_and_devices.php
-- apps/backend/phpunit.postgres.xml
-- apps/backend/routes/api.php
-- apps/backend/tests/Feature/FirebaseParentAuthTest.php
-- apps/backend/tests/Feature/FirebaseTokenVerifierTest.php
-- apps/backend/tests/Feature/MigrationLifecycleTest.php
-- apps/backend/tests/Fixtures/openssl.cnf
-- apps/backend/tests/TestCase.php
-- apps/parent-dashboard/src/app/app.scss
-- apps/parent-dashboard/src/app/core/auth-token.interceptor.spec.ts
-- apps/parent-dashboard/src/app/core/auth-token.interceptor.ts
-- apps/parent-dashboard/src/app/core/firebase-auth.service.spec.ts
-- apps/parent-dashboard/src/app/core/firebase-auth.service.ts
-- apps/parent-dashboard/src/app/core/parent-auth.guard.spec.ts
-- apps/parent-dashboard/src/app/features/auth/auth-page.behavior.spec.ts
-- apps/parent-dashboard/src/app/features/auth/auth-page.html
-- apps/parent-dashboard/src/app/features/auth/auth-page.scss
-- apps/parent-dashboard/src/app/features/auth/auth-page.ts
-- apps/parent-dashboard/src/app/features/page.ts
-- apps/parent-dashboard/tsconfig.json
+- backend/AGENTS.md
+- backend/app/Auth/FirebaseParentUserResolver.php
+- backend/app/Auth/FirebaseTokenVerifier.php
+- backend/app/Http/Controllers/Api/FamilyController.php
+- backend/app/Http/Middleware/ThrottleParentAuthentication.php
+- backend/bootstrap/app.php
+- backend/database/migrations/2026_10_15_000003_index_family_children_and_devices.php
+- backend/phpunit.postgres.xml
+- backend/routes/api.php
+- backend/tests/Feature/FirebaseParentAuthTest.php
+- backend/tests/Feature/FirebaseTokenVerifierTest.php
+- backend/tests/Feature/MigrationLifecycleTest.php
+- backend/tests/Fixtures/openssl.cnf
+- backend/tests/TestCase.php
+- frontend/src/app/app.scss
+- frontend/src/app/core/auth-token.interceptor.spec.ts
+- frontend/src/app/core/auth-token.interceptor.ts
+- frontend/src/app/core/firebase-auth.service.spec.ts
+- frontend/src/app/core/firebase-auth.service.ts
+- frontend/src/app/core/parent-auth.guard.spec.ts
+- frontend/src/app/features/auth/auth-page.behavior.spec.ts
+- frontend/src/app/features/auth/auth-page.html
+- frontend/src/app/features/auth/auth-page.scss
+- frontend/src/app/features/auth/auth-page.ts
+- frontend/src/app/features/page.ts
+- frontend/tsconfig.json
 - docs/android/permissions.md
 - docs/api/endpoints.md
 - docs/database/schema.md
@@ -159,14 +159,14 @@ Complete configured-provider identity acceptance and server session lifecycle ch
 ## Reproduce local checks
 
 ~~~powershell
-Set-Location 'C:\Users\Muhammad Hassan Ali\Projects\FamilyGuard\apps\backend'
+Set-Location 'C:\Users\Muhammad Hassan Ali\Projects\FamilyGuard\backend'
 & '..\..\.tools\php\php.exe' vendor/phpunit/phpunit/phpunit
 & '..\..\.tools\php\php.exe' vendor/phpunit/phpunit/phpunit --configuration=phpunit.postgres.xml
 & '..\..\.tools\php\php.exe' vendor/bin/pint --test
 composer validate --strict
 composer audit --locked
 
-Set-Location 'C:\Users\Muhammad Hassan Ali\Projects\FamilyGuard\apps\parent-dashboard'
+Set-Location 'C:\Users\Muhammad Hassan Ali\Projects\FamilyGuard\frontend'
 npm.cmd test -- --watch=false
 npm.cmd run build
 npm.cmd exec tsc -- --noEmit -p tsconfig.app.json

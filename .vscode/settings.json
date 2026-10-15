@@ -1,0 +1,5 @@
+{
+  "terminal.integrated.env.windows": {
+    "PATH": "${workspaceFolder}\\.tools\\php;${workspaceFolder}\\frontend\\node_modules\\.bin;${env:PATH}"
+  }
+}
