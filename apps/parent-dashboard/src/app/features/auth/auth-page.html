@@ -2,7 +2,13 @@
   <div class="auth-card">
     <span class="eyebrow">FAMILYGUARD · PARENT ACCESS</span>
     <h1>
-      {{ mode() === 'login' ? 'Welcome back' : mode() === 'register' ? 'Create an account' : 'Reset your password' }}
+      {{
+        mode() === 'login'
+          ? 'Welcome back'
+          : mode() === 'register'
+            ? 'Create an account'
+            : 'Reset your password'
+      }}
     </h1>
     <p class="description">Manage family safety with clear consent and secure access.</p>
     @if (!auth.configured) {
@@ -20,9 +26,14 @@
         <input id="email" type="email" autocomplete="email" formControlName="email" required />
         @if (mode() !== 'reset') {
           <label for="password">Password</label>
-          <input id="password" type="password"
+          <input
+            id="password"
+            type="password"
             [attr.autocomplete]="mode() === 'register' ? 'new-password' : 'current-password'"
-            formControlName="password" minlength="8" required />
+            formControlName="password"
+            [minlength]="mode() === 'register' ? 8 : null"
+            required
+          />
         }
         @if (message()) {
           <p class="notice" role="status">{{ message() }}</p>
@@ -31,18 +42,32 @@
           <p class="error" role="alert">{{ error() }}</p>
         }
         <button type="submit" [disabled]="busy() || form.invalid">
-          {{ busy() ? 'Please wait…' : mode() === 'login' ? 'Sign in' : mode() === 'register' ? 'Create account' : 'Send reset email' }}
+          {{
+            busy()
+              ? 'Please wait…'
+              : mode() === 'login'
+                ? 'Sign in'
+                : mode() === 'register'
+                  ? 'Create account'
+                  : 'Send reset email'
+          }}
         </button>
       </form>
       <div class="actions">
         @if (mode() !== 'login') {
-          <button type="button" (click)="setMode('login')">Back to sign in</button>
+          <button type="button" [disabled]="busy()" (click)="setMode('login')">
+            Back to sign in
+          </button>
         }
         @if (mode() !== 'register') {
-          <button type="button" (click)="setMode('register')">Create account</button>
+          <button type="button" [disabled]="busy()" (click)="setMode('register')">
+            Create account
+          </button>
         }
         @if (mode() !== 'reset') {
-          <button type="button" (click)="setMode('reset')">Forgot password?</button>
+          <button type="button" [disabled]="busy()" (click)="setMode('reset')">
+            Forgot password?
+          </button>
         }
       </div>
     }

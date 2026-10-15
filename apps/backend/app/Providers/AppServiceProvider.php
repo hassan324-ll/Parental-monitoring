@@ -2,23 +2,22 @@
 
 namespace App\Providers;
 
+use App\Auth\FirebaseParentUserResolver;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        Auth::viaRequest('firebase-parent', function (Request $request) {
+            return app(FirebaseParentUserResolver::class)->resolve($request->bearerToken());
+        });
     }
 }

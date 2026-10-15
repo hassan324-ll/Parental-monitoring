@@ -38,6 +38,10 @@ return [
     */
 
     'guards' => [
+        'firebase-parent' => [
+            'driver' => 'firebase-parent',
+            'provider' => 'users',
+        ],
         'web' => [
             'driver' => 'session',
             'provider' => 'users',

@@ -1,0 +1,5 @@
+# Public configuration for ephemeral, synthetic test keys. No private keys are stored.
+[ req ]
+distinguished_name = req_distinguished_name
+[ req_distinguished_name ]
+commonName = FamilyGuard synthetic tests

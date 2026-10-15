@@ -30,12 +30,13 @@ export class AuthPage {
     }),
     password: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.minLength(8)],
+      validators: [Validators.required],
     }),
   });
 
   setMode(mode: AuthMode): void {
     this.mode.set(mode);
+    this.form.controls.password.reset();
     this.error.set('');
     this.message.set('');
     this.updateValidators();
@@ -43,12 +44,20 @@ export class AuthPage {
 
   private updateValidators(): void {
     const name = this.form.controls.name;
-    name.setValidators(this.mode() === 'register' ? [Validators.required] : []);
+    name.setValidators(
+      this.mode() === 'register'
+        ? [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100)]
+        : [],
+    );
     name.updateValueAndValidity();
 
     const password = this.form.controls.password;
     password.setValidators(
-      this.mode() === 'reset' ? [] : [Validators.required, Validators.minLength(8)],
+      this.mode() === 'reset'
+        ? []
+        : this.mode() === 'register'
+          ? [Validators.required, Validators.minLength(8)]
+          : [Validators.required],
     );
     password.updateValueAndValidity();
   }

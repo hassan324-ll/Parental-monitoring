@@ -47,11 +47,9 @@ export class FeaturePage {
   health = signal('Not checked');
   check() {
     this.health.set('Checking…');
-    this.api
-      .check()
-      .subscribe({
-        next: () => this.health.set('API available'),
-        error: () => this.health.set('API unavailable — start Laravel on port 8000'),
-      });
+    this.api.check().subscribe({
+      next: () => this.health.set('API available'),
+      error: () => this.health.set('API unavailable — start Laravel on port 8000'),
+    });
   }
 }
