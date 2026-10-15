@@ -20,10 +20,30 @@
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         @if (mode() === 'register') {
           <label for="displayName">Your name</label>
-          <input id="displayName" type="text" autocomplete="name" formControlName="name" required />
+          <input
+            id="displayName"
+            type="text"
+            autocomplete="name"
+            formControlName="name"
+            aria-describedby="name-error"
+            required
+          />
+          @if (form.controls.name.touched && form.controls.name.invalid) {
+            <p id="name-error" class="error" role="alert">Enter a name of 1–100 characters.</p>
+          }
         }
         <label for="email">Email address</label>
-        <input id="email" type="email" autocomplete="email" formControlName="email" required />
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          formControlName="email"
+          aria-describedby="email-error"
+          required
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <p id="email-error" class="error" role="alert">Enter a valid email address.</p>
+        }
         @if (mode() !== 'reset') {
           <label for="password">Password</label>
           <input
@@ -31,9 +51,21 @@
             type="password"
             [attr.autocomplete]="mode() === 'register' ? 'new-password' : 'current-password'"
             formControlName="password"
+            aria-describedby="password-error"
             [minlength]="mode() === 'register' ? 8 : null"
             required
           />
+        }
+        @if (
+          mode() !== 'reset' && form.controls.password.touched && form.controls.password.invalid
+        ) {
+          <p id="password-error" class="error" role="alert">
+            {{
+              mode() === 'register'
+                ? 'Use at least 8 characters for your password.'
+                : 'Enter your password.'
+            }}
+          </p>
         }
         @if (message()) {
           <p class="notice" role="status">{{ message() }}</p>

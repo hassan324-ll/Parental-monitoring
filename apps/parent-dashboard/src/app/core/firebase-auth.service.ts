@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, InjectionToken, inject } from '@angular/core';
 import { FirebaseApp, FirebaseOptions, getApps, initializeApp } from 'firebase/app';
 import {
   Auth,
@@ -14,9 +14,27 @@ import {
 } from 'firebase/auth';
 import { environment } from '../../environments/environment';
 
+// Inject the SDK boundary so unit tests cannot accidentally call the real provider.
+export const FIREBASE_CLIENT = new InjectionToken('FamilyGuard Firebase client', {
+  providedIn: 'root',
+  factory: () => ({
+    initializeApp,
+    getApps,
+    getAuth,
+    reload,
+    signOut,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    updateProfile,
+  }),
+});
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseAuthService {
   private readonly auth: Auth | null;
+  private readonly sdk = inject(FIREBASE_CLIENT);
 
   constructor() {
     const options: FirebaseOptions | null = environment.firebaseConfig;
@@ -27,8 +45,9 @@ export class FirebaseAuthService {
     try {
       const name = 'familyguard-parent';
       const app: FirebaseApp =
-        getApps().find((candidate) => candidate.name === name) ?? initializeApp(options, name);
-      this.auth = getAuth(app);
+        this.sdk.getApps().find((candidate) => candidate.name === name) ??
+        this.sdk.initializeApp(options, name);
+      this.auth = this.sdk.getAuth(app);
     } catch {
       this.auth = null;
     }
@@ -45,35 +64,35 @@ export class FirebaseAuthService {
 
   async register(name: string, email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
-    const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    const credential = await this.sdk.createUserWithEmailAndPassword(auth, email.trim(), password);
     try {
-      await updateProfile(credential.user, { displayName: name.trim() });
-      await sendEmailVerification(credential.user);
+      await this.sdk.updateProfile(credential.user, { displayName: name.trim() });
+      await this.sdk.sendEmailVerification(credential.user);
     } finally {
-      await signOut(auth);
+      await this.sdk.signOut(auth);
     }
   }
 
   async login(email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
-    const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+    const credential = await this.sdk.signInWithEmailAndPassword(auth, email.trim(), password);
     try {
-      await reload(credential.user);
+      await this.sdk.reload(credential.user);
       if (!credential.user.emailVerified) {
         throw new Error('Please verify your email address before signing in.');
       }
     } catch (error) {
-      await signOut(auth);
+      await this.sdk.signOut(auth);
       throw error;
     }
   }
 
   async resetPassword(email: string): Promise<void> {
-    await sendPasswordResetEmail(this.requireAuth(), email.trim());
+    await this.sdk.sendPasswordResetEmail(this.requireAuth(), email.trim());
   }
 
   async logout(): Promise<void> {
-    if (this.auth) await signOut(this.auth);
+    if (this.auth) await this.sdk.signOut(this.auth);
   }
 
   async verifiedUser(): Promise<User | null> {
@@ -83,7 +102,7 @@ export class FirebaseAuthService {
     if (!user) return null;
     const alreadyVerified = user.emailVerified;
     try {
-      await reload(user);
+      await this.sdk.reload(user);
       if (this.auth.currentUser !== user || !user.emailVerified) return null;
       if (!alreadyVerified) await user.getIdToken(true);
       return this.auth.currentUser === user ? user : null;

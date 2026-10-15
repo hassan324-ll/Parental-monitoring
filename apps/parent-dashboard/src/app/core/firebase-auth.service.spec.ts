@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
-import { FirebaseAuthService } from './firebase-auth.service';
-const sdk = vi.hoisted(() => ({
+import { FIREBASE_CLIENT, FirebaseAuthService } from './firebase-auth.service';
+const sdk = {
   initializeApp: vi.fn(),
   getApps: vi.fn(),
   getAuth: vi.fn(),
@@ -12,9 +12,7 @@ const sdk = vi.hoisted(() => ({
   sendEmailVerification: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
   updateProfile: vi.fn(),
-}));
-vi.mock('firebase/app', () => ({ initializeApp: sdk.initializeApp, getApps: sdk.getApps }));
-vi.mock('firebase/auth', () => sdk);
+};
 describe('Firebase client fail-closed lifecycle', () => {
   const original = environment.firebaseConfig;
   let user: { emailVerified: boolean; getIdToken: ReturnType<typeof vi.fn> };
@@ -37,7 +35,7 @@ describe('Firebase client fail-closed lifecycle', () => {
     sdk.updateProfile.mockResolvedValue(undefined);
     sdk.sendEmailVerification.mockResolvedValue(undefined);
     sdk.sendPasswordResetEmail.mockResolvedValue(undefined);
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({ providers: [{ provide: FIREBASE_CLIENT, useValue: sdk }] });
   });
   afterEach(() => {
     environment.firebaseConfig = original;

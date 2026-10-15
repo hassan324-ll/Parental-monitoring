@@ -38,10 +38,18 @@ import { ParentProfileService } from '../core/parent-profile.service';
     }
     <article class="empty">
       <h2>
-        {{ title === 'Dashboard' ? 'Your family workspace starts here' : title + ' is being prepared' }}
+        {{
+          title === 'Dashboard' ? 'Your family workspace starts here' : title + ' is being prepared'
+        }}
       </h2>
-      <p class="muted">No child devices are connected. Device pairing and monitoring remain separate upcoming phases.</p>
-      <p class="muted">A successful Firebase sign-in is not the same as Laravel authorization. Verify your parent identity with the secure API above.</p>
+      <p class="muted">
+        No child devices are connected. Device pairing and monitoring remain separate upcoming
+        phases.
+      </p>
+      <p class="muted">
+        A successful Firebase sign-in is not the same as Laravel authorization. Verify your parent
+        identity with the secure API above.
+      </p>
     </article>
   </section>`,
 })
@@ -70,7 +78,8 @@ export class FeaturePage {
         this.parentStatus.set('Identity verified by Laravel');
         this.parentName.set(response.data.name);
       },
-      error: () => this.parentStatus.set('Unable to verify — check Firebase project ID and Laravel API'),
+      error: () =>
+        this.parentStatus.set('Unable to verify — check Firebase project ID and Laravel API'),
     });
   }
 }

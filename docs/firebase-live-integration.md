@@ -24,7 +24,7 @@ Never change the local database credentials based on this document. Restart Lara
 
 ## Remaining production blockers
 
-- Real registration, verification, login, reset and protected API tests have **not** yet been performed. This commit is a code integration, not a claim of live flow success.
+- Live SDK registration/sign-in, verification/reset request acceptance, logout, and rejection of an unverified real-provider token have passed. Disposable test accounts were deleted. Inbox delivery, email-link completion, browser persistence for a verified parent and real-provider authenticated API success still require manual verification. See phase2d-live-verification-report.md and phase2d-live-testing-guide.md.
 - Immediate Firebase revoked-token and disabled-account checks via trusted administrative verification remain required before release.
 - Production Firebase config is intentionally null; configure production domains, HTTPS and server project environment explicitly later.
 - Google-hosted CI remains blocked due to the repository owner's billing restriction. Continue reporting real local test evidence.

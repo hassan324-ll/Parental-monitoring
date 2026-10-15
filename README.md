@@ -5,9 +5,11 @@ Transparent Android family safety foundation, consisting of an Angular parent da
 ## Project status
 
 - Phase 1: Angular shell, public Laravel health endpoint, PostgreSQL schema, Kotlin companion shell and verified local Android debug APK. See docs/setup-report.md.
-- Phase 2A: Family and child REST endpoints on a separate draft PR with family membership authorization and tests. These have not passed CI yet.
-- Phase 2B (stacked draft branch): Parent web sign-up, email verification, sign-in, password reset, route guards, and logout scaffolding using Firebase's modular client SDK. Firebase web configuration defaults to null, intentionally disabling real sign-in until configured. Laravel Firebase token verification is not implemented, so protected API access remains blocked.
-- Planned: server Firebase verification, device pairing, permitted usage summaries, authorized GPS sharing and per-session consent-based screen sharing.
+- Phase 2A: Family and child REST APIs with membership authorization.
+- Phase 2B: Firebase parent registration, verified-email sign-in, password reset and guarded dashboard.
+- Phase 2C: Laravel verifies Firebase RSA signatures and identity claims before protected API access.
+- Phase 2D: Development Firebase project connected; `/api/v1/me` and dashboard identity check implemented. Local automated and real-provider results: docs/phase2d-live-verification-report.md. Verified inbox completion still requires a human. Production authentication remains disabled.
+- Planned: Consent-based device pairing, then separately authorized usage summaries, GPS and screen sharing.
 
 ## Local structure
 

@@ -14,8 +14,6 @@ export class ParentProfileService {
   private readonly http = inject(HttpClient);
 
   load() {
-    return this.http
-      .get<{ data: ParentProfile }>(environment.apiUrl + '/me')
-      .pipe(timeout(10000));
+    return this.http.get<{ data: ParentProfile }>(environment.apiUrl + '/me').pipe(timeout(10000));
   }
 }

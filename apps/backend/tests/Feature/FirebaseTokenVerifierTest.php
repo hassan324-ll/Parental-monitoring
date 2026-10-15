@@ -58,6 +58,22 @@ class FirebaseTokenVerifierTest extends TestCase
         Http::fake([self::URL => Http::response(['key-1' => self::$certificate], 200, ['Cache-Control' => 'public, max-age=3600'])]);
     }
 
+    public function test_signed_parent_profile_and_family_child_workflow(): void
+    {
+        $this->certificates();
+        $token = $this->jwt();
+        $this->withToken($token)->getJson('/api/v1/me')->assertOk()
+            ->assertJsonPath('data.email', 'parent@example.test')->assertJsonPath('data.name', 'Synthetic Parent');
+        $this->assertDatabaseHas('users', ['firebase_uid' => 'synthetic-parent']);
+        $family = $this->withToken($token)->postJson('/api/v1/families', ['name' => 'Synthetic workflow family'])
+            ->assertCreated()->json('data.id');
+        $this->withToken($token)->getJson('/api/v1/families')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->withToken($token)->postJson('/api/v1/families/'.$family.'/children', ['display_name' => 'Synthetic Child'])
+            ->assertCreated()->assertJsonPath('data.display_name', 'Synthetic Child');
+        $this->withToken($token)->getJson('/api/v1/families/'.$family.'/children')
+            ->assertOk()->assertJsonPath('meta.total', 1);
+    }
+
     public function test_valid_rsa_signed_verified_parent_is_accepted(): void
     {
         $this->certificates();

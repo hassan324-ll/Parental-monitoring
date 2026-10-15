@@ -72,6 +72,20 @@ describe('parent authentication forms', () => {
     await Promise.all([first, second]);
     expect(f.componentInstance.busy()).toBe(false);
   });
+  it('explains invalid and empty registration fields after interaction', () => {
+    const f = fixture();
+    f.componentInstance.setMode('register');
+    f.componentInstance.form.markAllAsTouched();
+    f.detectChanges();
+    const text = f.nativeElement.textContent as string;
+    expect(text).toContain('Enter a name of 1–100 characters.');
+    expect(text).toContain('Enter a valid email address.');
+    expect(text).toContain('Use at least 8 characters for your password.');
+    expect(
+      (f.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(auth.register).not.toHaveBeenCalled();
+  });
   it('keeps password reset responses generic', async () => {
     auth.resetPassword.mockRejectedValue(new Error('user-not-found'));
     const f = fixture();
