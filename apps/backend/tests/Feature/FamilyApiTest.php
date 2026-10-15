@@ -22,7 +22,7 @@ class FamilyApiTest extends TestCase
     public function test_parent_can_create_a_family_and_child(): void
     {
         $parent = User::factory()->create();
-        $this->actingAs($parent);
+        $this->actingAs($parent, 'firebase-parent');
 
         $response = $this->postJson('/api/v1/families', ['name' => 'Test family'])
             ->assertCreated()->assertJsonPath('data.name', 'Test family');
@@ -48,11 +48,11 @@ class FamilyApiTest extends TestCase
         $owner = User::factory()->create();
         $stranger = User::factory()->create();
 
-        $this->actingAs($owner);
+        $this->actingAs($owner, 'firebase-parent');
         $familyId = $this->postJson('/api/v1/families', ['name' => 'Private family'])
             ->assertCreated()->json('data.id');
 
-        $this->actingAs($stranger);
+        $this->actingAs($stranger, 'firebase-parent');
         $this->getJson('/api/v1/families')->assertOk()->assertJsonCount(0, 'data');
         $this->getJson("/api/v1/families/{$familyId}/children")->assertNotFound();
         $this->postJson("/api/v1/families/{$familyId}/children", ['display_name' => 'Wrong'])
@@ -64,13 +64,13 @@ class FamilyApiTest extends TestCase
         $owner = User::factory()->create();
         $viewer = User::factory()->create();
 
-        $this->actingAs($owner);
+        $this->actingAs($owner, 'firebase-parent');
         $familyId = $this->postJson('/api/v1/families', ['name' => 'View only'])
             ->assertCreated()->json('data.id');
 
         Family::findOrFail($familyId)->members()->attach($viewer->id, ['role' => 'viewer']);
 
-        $this->actingAs($viewer);
+        $this->actingAs($viewer, 'firebase-parent');
         $this->getJson('/api/v1/families')->assertOk()->assertJsonCount(1, 'data');
         $this->getJson("/api/v1/families/{$familyId}/children")->assertOk();
         $this->postJson("/api/v1/families/{$familyId}/children", ['display_name' => 'Not allowed'])
@@ -79,7 +79,7 @@ class FamilyApiTest extends TestCase
 
     public function test_invalid_names_are_rejected(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->create(), 'firebase-parent');
         $this->postJson('/api/v1/families', ['name' => ''])->assertUnprocessable();
         $familyId = $this->postJson('/api/v1/families', ['name' => 'Valid family'])
             ->assertCreated()->json('data.id');

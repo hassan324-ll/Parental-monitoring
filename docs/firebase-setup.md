@@ -1,25 +1,25 @@
-# Firebase preparation and parent authentication
+# Firebase parent authentication
 
-No live Firebase project, cloud credentials, billing or account login has been configured.
+FamilyGuard uses Firebase's modular JavaScript client for the parent sign-in interface. This branch adds a Laravel Firebase ID token verifier backed by Google's published signing certificates; no private cloud key is required just to validate incoming ID tokens.
 
-## Angular parent authentication
+## Account configuration required
 
-1. Create/select a Firebase Console project, enable Authentication > Sign-in method > Email/Password.
-2. Register a Web app. Copy its public configuration (apiKey, authDomain, projectId, appId and optional messagingSenderId).
-3. Configure the Firebase web options as environment.firebaseConfig in the local Angular configuration. Leave it null until real configuration is available. Never put a service account JSON or a private key in frontend code.
-4. Review provider authorized domains for the development and production hosts.
-5. Test account registration, email verification, sign in, password reset and logout with test identities.
+1. Create/select a Firebase project and enable Authentication > Sign-in method > Email/Password.
+2. Register a Firebase Web app, then configure Angular's environment.firebaseConfig with the public web settings. Keep service accounts and private keys out of Angular and Git.
+3. Set FIREBASE_PROJECT_ID in the ignored Laravel .env file to the **exact** projectId for the registered Firebase app.
+4. Run new database migrations locally to add users.firebase_uid.
+5. Test registration, verification email, login and authenticated family creation with synthetic test accounts.
 
-With firebaseConfig null, the Angular parent login page explicitly disables account actions. Protected Angular routes redirect to /auth. The code includes a token interceptor that attaches a verified email account's Firebase ID token only to the configured API prefix. This is only a client convenience; it is not sufficient to authorize any data.
+## Backend verification
 
-## Laravel: blocked until server verifier is implemented
+The Laravel firebase-parent request guard rejects missing, malformed, unsupported, expired and incorrectly signed JWTs. It checks RS256 signature against the Google securetoken certificates (downloaded via HTTPS and cached for 30 minutes), project audience, issuer, token timestamps, UID and verified email. A missing FIREBASE_PROJECT_ID fails closed.
 
-The protected family APIs use Laravel auth middleware and deny anonymous HTTP callers. A future production guard must validate Firebase ID token signature, issuer, audience, expiry, and ideally revocation using a maintained Firebase Admin SDK. The verified provider UID must map to an authorized local Laravel user. Do not add an authentication bypass. Until the server verifier exists, successful Firebase browser sign-in does NOT make the family APIs usable.
+The verified Firebase UID, **not a browser-supplied user ID or matching email**, is the link to a Laravel user. The first verified sign-in creates a local record with a random unusable password. An existing local user with the same email but no matching Firebase UID is **not silently linked**; manual migration is required to avoid account takeover.
 
-## Android companion
+## Remaining checks
 
-Register Android package com.familyguard.child and its debug suffix where appropriate. Android google-services.json must remain ignored and private. Pairing with short-lived device codes and revocable device-scoped credentials will be implemented in a separate phase with visible device-side approval.
-
-## Testing
-
-Angular build/unit tests and Firebase live-provider tests must be executed and recorded. Laravel authorization tests must pass with forged bearer tokens rejected and cross-family isolation enforced. Do not claim a feature passed unless tested.
+- GitHub Actions is blocked because of an account billing lock; see docs/ci-troubleshooting.md.
+- Run full Laravel tests on SQLite and a separate PostgreSQL test database before merging.
+- Test Firebase real-provider sign-up, verified email, and REST calls after configuring the project.
+- The backend guard verifies token signature and claims, but **revoked-session checks through Firebase Admin are not yet implemented**. Firebase project administration, certificate refresh/failure handling, multi-process caching and device pairing require additional hardening and testing.
+- This auth guard is **parent-only**. Android companion devices will use separate revocable device credentials after explicit consent-based pairing.
