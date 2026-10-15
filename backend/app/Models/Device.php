@@ -9,9 +9,14 @@ class Device extends Model
 {
     protected $fillable = ['name'];
 
+    protected $hidden = ['credential_hash'];
+
     protected function casts(): array
     {
-        return ['revoked_at' => 'immutable_datetime'];
+        return [
+            'revoked_at' => 'immutable_datetime',
+            'last_seen_at' => 'immutable_datetime',
+        ];
     }
 
     public function family(): BelongsTo
