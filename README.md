@@ -1,20 +1,32 @@
 # FamilyGuard
-Transparent Android family safety foundation. Phase 1 includes a parent Angular shell, Laravel API health endpoint and Kotlin Compose companion shell. Pairing, authentication and monitoring are planned, not implemented.
 
-Stack: Angular 22 standalone/strict SCSS with Material; Laravel 13/PHP 8.5; PostgreSQL; Kotlin/Compose Material 3, MVVM, Flow, Retrofit, WorkManager; future Firebase Auth/FCM. See docs/setup-report.md for the initial setup history and apps/child-android/ANDROID-BUILD-RESULT.md for the successful Android debug build and launch instructions.
+Transparent Android family safety foundation, consisting of an Angular parent dashboard, Laravel API and Kotlin Compose companion app. No monitoring or screen capture is active.
 
-Structure: apps/parent-dashboard, apps/backend, apps/child-android; packages/shared-contracts; docs/{architecture,api,database,android,security,testing}; scripts; infrastructure/local; .github/workflows.
+## Project status
 
-From this repository in PowerShell:
+- Phase 1: Angular shell, public Laravel health endpoint, PostgreSQL schema, Kotlin companion shell and verified local Android debug APK. See docs/setup-report.md.
+- Phase 2A: Family and child REST endpoints on a separate draft PR with family membership authorization and tests. These have not passed CI yet.
+- Phase 2B (stacked draft branch): Parent web sign-up, email verification, sign-in, password reset, route guards, and logout scaffolding using Firebase's modular client SDK. Firebase web configuration defaults to null, intentionally disabling real sign-in until configured. Laravel Firebase token verification is not implemented, so protected API access remains blocked.
+- Planned: server Firebase verification, device pairing, permitted usage summaries, authorized GPS sharing and per-session consent-based screen sharing.
+
+## Local structure
+
+apps/parent-dashboard, apps/backend, apps/child-android, packages/shared-contracts, docs, scripts, infrastructure/local, .github/workflows.
+
+## Running locally
+
+From the repository root in PowerShell:
+
 ~~~powershell
 .\scripts\check-environment.ps1
 .\scripts\setup-project.ps1
 .\scripts\start-database.ps1
 .\scripts\start-backend.ps1
-# A separate terminal:
+# Separate terminal:
 .\scripts\start-frontend.ps1
 .\scripts\run-tests.ps1
 ~~~
-Backend http://localhost:8000; health /api/v1/health; dashboard http://localhost:4200. Scripts bind to loopback. Copy backend .env.example to .env if absent, generate APP_KEY, the generated local PostgreSQL role/database is already configured on port 5433; use .tools/php/php.exe for manual artisan commands. For a new clone, create a dedicated role/database and put credentials only in ignored .env. No global Git identity is changed. Setup does not silently migrate or overwrite environments.
 
-Android setup: docs/android/permissions.md. Firebase account steps: docs/firebase-setup.md. Security: docs/security/architecture.md. PWA support is planned; no service worker caches private data. Do not publish the release app until production HTTPS and identity verification are implemented.
+Laravel: http://localhost:8000; health: /api/v1/health. Angular: http://localhost:4200. Configuration steps: docs/firebase-setup.md. GitHub Actions troubleshooting: docs/ci-troubleshooting.md. No private data or Firebase service credentials belong in the repository.
+
+Do not deploy to production until server identity verification, device consent, authorization tests, and privacy requirements are complete.

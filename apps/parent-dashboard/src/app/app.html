@@ -10,7 +10,13 @@
     <p class="disclosure">Transparent by design.<br />Sharing stays in your control.</p>
   </aside>
   <main>
-    <header><span>Parent workspace</span><span class="badge">Foundation preview</span></header>
+    <header>
+      <span>Parent workspace</span>
+      <span class="badge">Authentication setup</span>
+      @if (auth.configured) {
+        <button type="button" class="sign-out" (click)="signOut()">Sign out</button>
+      }
+    </header>
     <router-outlet />
   </main>
 </div>

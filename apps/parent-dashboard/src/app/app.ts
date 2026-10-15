@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { FirebaseAuthService } from './core/firebase-auth.service';
+
 @Component({
   selector: 'app-root',
   imports: [RouterLink, RouterLinkActive, RouterOutlet],
@@ -7,6 +9,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   styleUrl: './app.scss',
 })
 export class App {
+  readonly auth = inject(FirebaseAuthService);
+  private readonly router = inject(Router);
+
   links = [
     ['auth', 'Authentication'],
     ['dashboard', 'Dashboard'],
@@ -20,4 +25,9 @@ export class App {
     ['reports', 'Reports'],
     ['settings', 'Settings'],
   ];
+
+  async signOut(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigateByUrl('/auth');
+  }
 }
