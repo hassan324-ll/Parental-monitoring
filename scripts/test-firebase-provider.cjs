@@ -3,11 +3,11 @@ const fs = require("node:fs");
 const { createRequire } = require("node:module");
 const { randomBytes } = require("node:crypto");
 const root = require("node:path").resolve(__dirname, "..");
-const requireApp = createRequire(root + "/apps/parent-dashboard/package.json");
+const requireApp = createRequire(root + "/frontend/package.json");
 const appSdk = requireApp("firebase/app");
 const sdk = requireApp("firebase/auth");
 const source = fs.readFileSync(
-  root + "/apps/parent-dashboard/src/environments/environment.ts",
+  root + "/frontend/src/environments/environment.ts",
   "utf8",
 );
 const options = Object.fromEntries(

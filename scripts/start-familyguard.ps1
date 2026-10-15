@@ -3,7 +3,7 @@ param([ValidateRange(10, 300)][int]$TimeoutSeconds = 120)
 Require-Command npm.cmd
 Require-Command node.exe
 if (-not (Test-Path $php) -and -not (Get-Command $php -ErrorAction SilentlyContinue)) { throw 'PHP is missing; run setup-project.ps1 first.' }
-foreach ($dependency in @('apps/backend/vendor/autoload.php', 'apps/backend/.env', 'apps/parent-dashboard/node_modules/@angular/cli/bin/ng.js')) {
+foreach ($dependency in @('backend/vendor/autoload.php', 'backend/.env', 'frontend/node_modules/@angular/cli/bin/ng.js')) {
     if (-not (Test-Path (Join-Path $projectRoot $dependency))) { throw "Missing $dependency; run setup-project.ps1 and configure the ignored backend .env." }
 }
 $logRoot = Join-Path $projectRoot '.local/run'

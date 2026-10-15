@@ -56,7 +56,7 @@ Run this locally after the email is verified. It prompts locally for a hidden pa
 
 ~~~powershell
 Set-Location 'C:\Users\Muhammad Hassan Ali\Projects\FamilyGuard'
-$webSource = Get-Content '.\apps\parent-dashboard\src\environments\environment.ts' -Raw
+$webSource = Get-Content '.\frontend\src\environments\environment.ts' -Raw
 $webKey = [regex]::Match($webSource, "apiKey: '([^']+)'").Groups[1].Value
 $testEmail = Read-Host 'Verified synthetic parent email'
 $testSecret = Read-Host 'Password (local only)' -AsSecureString
@@ -90,12 +90,12 @@ This separate REST test does not change the browser's sign-in state. Deleting sy
 ~~~powershell
 Set-Location 'C:\Users\Muhammad Hassan Ali\Projects\FamilyGuard'
 . .\scripts\common.ps1
-Push-Location apps/backend
+Push-Location backend
 & $php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml
 & $php vendor/phpunit/phpunit/phpunit --configuration phpunit.postgres.xml
 & $php vendor/bin/pint --test
 Pop-Location
-Push-Location apps/parent-dashboard
+Push-Location frontend
 npm.cmd test -- --watch=false
 npx.cmd tsc --noEmit -p tsconfig.app.json
 npx.cmd tsc --noEmit -p tsconfig.spec.json

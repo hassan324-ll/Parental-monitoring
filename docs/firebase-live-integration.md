@@ -4,7 +4,7 @@ The user registered a Firebase Web app and enabled Firebase Authentication > Ema
 
 ## Required local Laravel action
 
-On the user's laptop, edit ignored `apps/backend/.env` and set:
+On the user's laptop, edit ignored `backend/.env` and set:
 
 ```dotenv
 FIREBASE_PROJECT_ID=family-guard-eb08c
@@ -15,7 +15,7 @@ Never change the local database credentials based on this document. Restart Lara
 ## Run and verify (local account/testing action)
 
 1. Ensure Firebase Authentication > Email/Password is enabled and localhost is permitted in Firebase Authentication's authorized domains when necessary.
-2. In `apps/parent-dashboard`, install locked dependencies and run the Angular development server using the existing project scripts.
+2. In `frontend`, install locked dependencies and run the Angular development server using the existing project scripts.
 3. Run the Laravel API with a valid PostgreSQL development configuration and the project ID above. Apply additive pending migrations as needed, without resetting the development DB.
 4. Register a **synthetic test parent** in the browser, check its inbox for email verification, then log in.
 5. Open the Angular dashboard and click **Verify with Laravel**. This invokes `GET /api/v1/me` with a Firebase ID token; the result should display a minimal test-parent name.

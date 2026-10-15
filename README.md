@@ -13,7 +13,27 @@ Transparent Android family safety foundation, consisting of an Angular parent da
 
 ## Local structure
 
-apps/parent-dashboard, apps/backend, apps/child-android, packages/shared-contracts, docs, scripts, infrastructure/local, .github/workflows.
+frontend, backend, apps/child-android, packages/shared-contracts, docs, scripts, infrastructure/local, .github/workflows.
+
+## Simple development commands
+
+Open the FamilyGuard root folder in VS Code and create two **new** terminals. Workspace terminal settings select the project PHP (with PostgreSQL support) and local Angular CLI. Start the database once with `.\scripts\start-database.ps1`.
+
+Terminal 1:
+
+~~~powershell
+cd frontend
+ng serve
+~~~
+
+Terminal 2, starting at the FamilyGuard root:
+
+~~~powershell
+cd backend
+php artisan serve
+~~~
+
+Keep both terminals open; Ctrl+C stops the respective service. Outside VS Code, first run `. .\scripts\common.ps1` from the root in each PowerShell terminal to select the same local runtimes. The database must be running.
 
 ## Running locally
 

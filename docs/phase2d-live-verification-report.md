@@ -22,7 +22,7 @@ Verified on 2026-10-15, Windows laptop, Asia/Karachi.
 ## Configuration
 
 - Angular development Firebase project: family-guard-eb08c; authDomain family-guard-eb08c.firebaseapp.com. All public web config fields match the owner's Console object.
-- Ignored apps/backend/.env now has FIREBASE_PROJECT_ID=family-guard-eb08c. Only this setting was changed. Laravel config cache was cleared and services restarted.
+- Ignored backend/.env now has FIREBASE_PROJECT_ID=family-guard-eb08c. Only this setting was changed. Laravel config cache was cleared and services restarted.
 - .env is confirmed ignored. No service-account JSON, private key, password, database credential or ID token was staged. Disposable provider credentials exist only in process memory and never print.
 - Firebase public project-configuration response confirms localhost is authorized. Newer Firebase projects do not add localhost by default; official guidance: https://firebase.google.com/docs/auth/faq-and-troubleshooting . Console navigation is in the testing guide.
 - Production environment remains firebaseConfig: null. Production output was searched and contains zero occurrences of the development project ID. No deployment was performed.
@@ -92,9 +92,9 @@ Synthetic addresses used the reserved example.invalid domain. There is no inbox 
 ## Changed files
 
 - README.md; docs/firebase-live-integration.md; docs/phase2d-live-testing-guide.md; this report.
-- apps/backend/tests/Feature/FirebaseTokenVerifierTest.php.
-- apps/parent-dashboard/src/app/core/firebase-auth.service.ts and .spec.ts; core/parent-profile.service.ts (formatting).
-- apps/parent-dashboard/src/app/features/auth/auth-page.html and auth-page.behavior.spec.ts; features/page.ts (formatting); src/environments/environment.ts (public key correction).
+- backend/tests/Feature/FirebaseTokenVerifierTest.php.
+- frontend/src/app/core/firebase-auth.service.ts and .spec.ts; core/parent-profile.service.ts (formatting).
+- frontend/src/app/features/auth/auth-page.html and auth-page.behavior.spec.ts; features/page.ts (formatting); src/environments/environment.ts (public key correction).
 - scripts/start-backend.ps1; start-familyguard.ps1; stop-familyguard.ps1; test-firebase-provider.cjs.
 - Ignored local-only backend .env updated; no unrelated settings changed.
 

@@ -9,12 +9,12 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: apps/parent-dashboard/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
       - run: npm ci && npm run build && npm test -- --watch=false
-        working-directory: apps/parent-dashboard
+        working-directory: frontend
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
           extensions: pdo_sqlite, pdo_pgsql, mbstring, xml
       - run: composer install --no-interaction && php artisan test
-        working-directory: apps/backend
+        working-directory: backend
