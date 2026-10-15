@@ -1,0 +1,1 @@
+HTTP contracts are transport-only. No credentials, platform code or business rules. Health schema matches GET /api/v1/health.

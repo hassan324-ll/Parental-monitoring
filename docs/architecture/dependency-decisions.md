@@ -1,0 +1,6 @@
+# Dependency decisions
+Angular 22.2.2 CLI was verified against its published Node engine requirement; Node 24.21 satisfies ^24.15. Angular runtime resolves through package-lock.json. Laravel 13 requires PHP >=8.3; Composer installed Laravel framework 13.36.0. Official PHP 8.5.11 NTS x64 is isolated under ignored .tools/php because existing Herd Lite PHP lacks pdo_pgsql. Developer scripts prefer the local runtime and do not change global PATH.
+
+Android uses the documented AGP 8.13.2 / Kotlin 2.2.21 / Gradle 8.13 combination and SDK 36, rather than migrating to AGP 9 during initial shell setup. Java target 17; Android Studio's bundled Java 25 cannot run this Gradle version; use verified local Temurin JDK 17.0.20.1. Compose compiler plugin matches Kotlin. Firebase packages are dormant until user account configuration. The web gRPC override pins 1.14.6 to address npm's certificate validation advisory. No forced major dependency downgrade is used. See setup report for remaining CLI-only advisories and unverified native build status.
+
+References: https://angular.dev/reference/versions ; https://laravel.com/framework/docs/releases ; https://developer.android.com/build/releases/agp-8-13-0-release-notes ; https://www.php.net/downloads.php?os=windows .

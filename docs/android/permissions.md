@@ -1,0 +1,12 @@
+# Android permissions and local setup
+Current manifest requests INTERNET only; no monitoring permission prompts. App icon and launcher remain visible. Permission Overview opens Android application settings for review and revocation.
+
+Future activity reporting uses Usage Access special settings after disclosure. Location starts with foreground coarse/fine consent; background location requires a separate justified flow and platform policy review. Notifications and foreground-service types must follow the target SDK rules. WorkManager is included but no work is scheduled. Android background limits forbid arbitrary persistent background collection.
+
+Screen sharing uses MediaProjection: fresh system consent each session, foreground mediaProjection service and visible notification with Stop; never cache/reuse consent tokens. Revocation immediately stops collection, workers, media and server session. Never request accessibility for surveillance, SMS, contacts or keyboard access.
+
+In Android Studio: complete Standard setup; SDK Manager → Android SDK Platform 36, Build-Tools 35.0.0 and 36.0.0, Platform-Tools and command-line tools latest. Android Studio 2026.2.1 bundles Java 25, which cannot run Gradle 8.13. Configure Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK to the project-local .tools/jdk17/jdk-17.0.20.1+1 (Java target 17). scripts/common.ps1 sets JAVA_HOME only for the running script. Open apps/child-android and sync. SDK licenses require review. Device Manager may create a Pixel API 36 x86_64 AVD only if sufficient free RAM and hypervisor support exist; virtualization firmware is enabled but hypervisor acceleration has not been verified. This 8 GB laptop currently has about 1 GB free: prefer a physical device. Enable developer options and USB debugging on your own device, approve its RSA prompt, then adb devices. Never change BIOS automatically.
+
+Emulator uses http://10.0.2.2:8000/api/v1/. For physical USB run adb reverse tcp:8000 tcp:8000 and change debug base URL to http://127.0.0.1:8000/api/v1/. No LAN exposure required. Debug cleartext only; release refuses cleartext and has no API URL until configured. Firebase dependencies are dormant without configuration; no google-services plugin applied yet.
+
+After SDK setup, run scripts/build-android.ps1. No SDK, ADB, emulator, AVD or APK was present at the final SDK inspection. Android sources and dependency resolution still require the first full Gradle sync/build; XML parsing alone is not a native build.

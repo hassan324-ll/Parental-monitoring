@@ -1,0 +1,20 @@
+name: Verify
+on: [push, pull_request]
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/parent-dashboard/package-lock.json
+      - run: npm ci && npm run build && npm test -- --watch=false
+        working-directory: apps/parent-dashboard
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_sqlite, pdo_pgsql, mbstring, xml
+      - run: composer install --no-interaction && php artisan test
+        working-directory: apps/backend

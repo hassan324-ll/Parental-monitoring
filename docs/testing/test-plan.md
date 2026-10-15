@@ -1,0 +1,4 @@
+# Test plan
+Run scripts/run-tests.ps1: Angular production build and Vitest shell navigation check; Laravel health response, CORS origin isolation and foundation migration tests (SQLite in memory). PostgreSQL must additionally run migrate and rollback on a disposable database before release: SQLite is not evidence of PostgreSQL compatibility.
+
+Android: Gradle assembleDebug and lintDebug with installed SDK; device smoke test all ten screens, Settings link, visible launcher, health networking, no monitoring prompts. Future tests: expired/replayed pairing, cross-family IDs, denied roles, forged Firebase tokens, revoked grants, offline retry deduplication, capture Stop, rotation/disconnect/expiry termination, retention deletion. No production monitoring feature is accepted based only on UI tests.

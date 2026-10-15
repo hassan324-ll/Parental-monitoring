@@ -1,0 +1,6 @@
+# Local PostgreSQL
+PostgreSQL 18.6 is installed under C:/Program Files/PostgreSQL/18. The FamilyGuard-specific cluster is in ignored .local/postgres and listens only on 127.0.0.1:5433. This is separate from the installer-created Windows service on port 5432. Use scripts/start-database.ps1 and scripts/stop-database.ps1 for this project cluster; neither changes the Windows service.
+
+Database familyguard is owned by non-superuser role familyguard. Database familyguard_test is reserved for isolated integration tests. Random application credentials exist only in ignored apps/backend/.env; separate cluster admin credentials are in ignored .local/postgres-admin.env. Never copy credentials into docs or version control. Treat both files and backups as sensitive. SCRAM authentication is enabled. No passwords are needed in startup scripts. All migrations applied successfully on PostgreSQL.
+
+Existing Herd PHP does not include pdo_pgsql. Scripts prefer checksum-verified .tools/php/php.exe (PHP 8.5.11), which has PostgreSQL and SQLite drivers. For manual artisan commands use this runtime. Do not run tests using the development database: default phpunit.xml uses in-memory SQLite; PostgreSQL tests must explicitly select familyguard_test.

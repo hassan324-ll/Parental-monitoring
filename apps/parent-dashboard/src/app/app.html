@@ -1,0 +1,16 @@
+<div class="layout">
+  <aside>
+    <a class="brand" routerLink="/dashboard"><span class="shield">F</span> FamilyGuard</a>
+    <p class="caption">FAMILY SAFETY WORKSPACE</p>
+    <nav aria-label="Main navigation">
+      @for (link of links; track link[0]) {
+        <a [routerLink]="link[0]" routerLinkActive="active">{{ link[1] }}</a>
+      }
+    </nav>
+    <p class="disclosure">Transparent by design.<br />Sharing stays in your control.</p>
+  </aside>
+  <main>
+    <header><span>Parent workspace</span><span class="badge">Foundation preview</span></header>
+    <router-outlet />
+  </main>
+</div>

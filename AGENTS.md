@@ -1,0 +1,6 @@
+# FamilyGuard engineering rules
+Keep Angular, Laravel and Android independently buildable. Shared HTTP contracts live in packages/shared-contracts. Controllers validate requests and delegate business behavior to services. Policies must scope every family resource to authenticated membership; deny by default. No production feature may rely on client-supplied family ownership.
+
+Never add hidden monitoring, keylogging, message interception, permission bypass or unattended capture. Device consent, visible disclosure and revocation are mandatory. Every MediaProjection session requires fresh system authorization and a visible foreground notification. Never commit credentials or private device data. Minimize telemetry and redact logs. Firebase ID tokens require server-side signature, issuer, audience and expiry verification; no protected endpoint before this exists.
+
+Use strict TypeScript, typed Kotlin state, Laravel FormRequests and foreign keys. Keep native platform work in Android, identity verification and authorization in Laravel, presentation in clients. Use pinned lockfiles. Test authorization boundaries and migrations on PostgreSQL before shipping. Do not describe placeholders or unexecuted checks as working. Deliver future phases incrementally with tests and updated documentation.
