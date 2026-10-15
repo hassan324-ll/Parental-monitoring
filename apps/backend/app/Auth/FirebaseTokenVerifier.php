@@ -44,14 +44,7 @@ class FirebaseTokenVerifier
         }
 
         try {
-            $certificates = Cache::remember('familyguard:firebase-id-certs', now()->addMinutes(30), function (): array {
-                $response = Http::timeout(8)->get(self::CERTS_URL)->throw();
-                $certs = $response->json();
-                if (! is_array($certs)) {
-                    throw new \RuntimeException('Firebase signing certificates unavailable');
-                }
-                return $certs;
-            });
+            $certificates = $this->certificates($kid);
 
             $pem = $certificates[$kid] ?? null;
             if (! is_string($pem) || ! str_contains($pem, 'BEGIN CERTIFICATE')) {
@@ -65,18 +58,20 @@ class FirebaseTokenVerifier
             return null;
         }
 
-        $now = time();
+        $now = now()->timestamp;
         $iat = $payload['iat'] ?? null;
         $exp = $payload['exp'] ?? null;
         $authTime = $payload['auth_time'] ?? null;
         $uid = $payload['sub'] ?? null;
         $email = $payload['email'] ?? null;
+        $notBefore = $payload['nbf'] ?? null;
 
         if (($payload['aud'] ?? null) !== $projectId ||
             ($payload['iss'] ?? null) !== 'https://securetoken.google.com/'.$projectId ||
             ! is_int($iat) || ! is_int($exp) || ! is_int($authTime) ||
             $iat > $now + 60 || $authTime > $now + 60 ||
-            $iat <= 0 || $authTime <= 0 || $exp <= $now ||
+            $iat <= 0 || $authTime <= 0 || $exp <= $now || $exp <= $iat || $authTime > $iat ||
+            ($notBefore !== null && (! is_int($notBefore) || $notBefore > $now + 60)) ||
             ! is_string($uid) || $uid === '' || strlen($uid) > 128 ||
             ! is_string($email) || strlen($email) > 254 ||
             filter_var($email, FILTER_VALIDATE_EMAIL) === false ||
@@ -93,6 +88,51 @@ class FirebaseTokenVerifier
         return new VerifiedFirebaseParent($uid, $email, $name);
     }
 
+    /** Respect Google's key lifetime and bound refreshes for unknown signing keys. */
+    private function certificates(string $kid): array
+    {
+        $key = 'familyguard:firebase-id-certs:v2';
+        $usable = static function ($entry) use ($kid): bool {
+            return is_array($entry) && is_array($entry['certificates'] ?? null)
+                && ($entry['expires_at'] ?? 0) > now()->timestamp
+                && (isset($entry['certificates'][$kid]) || ($entry['refreshed_at'] ?? 0) > now()->timestamp - 60);
+        };
+        $cached = Cache::get($key);
+        if ($usable($cached)) {
+            return $cached['certificates'];
+        }
+
+        // The default file cache provides a cross-process lock on this host.
+        // Multi-host deployments must configure a shared lock-capable cache.
+        return Cache::lock($key.':refresh', 12)->block(3, function () use ($key, $usable): array {
+            $cached = Cache::get($key);
+            if ($usable($cached)) {
+                return $cached['certificates'];
+            }
+            $response = Http::connectTimeout(3)->timeout(8)->withoutRedirecting()->get(self::CERTS_URL)->throw();
+            $certificates = $response->json();
+            if (! is_array($certificates) || $certificates === [] || count($certificates) > 100) {
+                throw new \RuntimeException('Firebase signing certificates unavailable');
+            }
+            foreach ($certificates as $kid => $pem) {
+                if (! is_string($kid) || ! is_string($pem) || openssl_x509_read($pem) === false) {
+                    throw new \RuntimeException('Invalid Firebase signing certificate response');
+                }
+            }
+            $control = $response->header('Cache-Control');
+            $ttl = preg_match('/max-age=(\d+)/i', $control, $match) ? min(3600, (int) $match[1]) : 60;
+            $ttl = max(0, $ttl - max(0, (int) $response->header('Age')));
+            if (preg_match('/no-store|no-cache/i', $control)) {
+                $ttl = 0;
+            }
+            if ($ttl > 0) {
+                Cache::put($key, ['certificates' => $certificates, 'expires_at' => now()->timestamp + $ttl, 'refreshed_at' => now()->timestamp], $ttl);
+            }
+
+            return $certificates;
+        });
+    }
+
     private function decodePart(string $part): ?array
     {
         $decoded = $this->decodeBase64Url($part);
@@ -100,6 +140,7 @@ class FirebaseTokenVerifier
             return null;
         }
         $json = json_decode($decoded, true);
+
         return is_array($json) ? $json : null;
     }
 
@@ -109,6 +150,7 @@ class FirebaseTokenVerifier
             return null;
         }
         $decoded = base64_decode(strtr($part, '-_', '+/'), true);
+
         return $decoded === false ? null : $decoded;
     }
 }

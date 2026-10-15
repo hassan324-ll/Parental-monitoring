@@ -24,10 +24,14 @@ export class FirebaseAuthService {
       this.auth = null;
       return;
     }
-    const name = 'familyguard-parent';
-    const app: FirebaseApp =
-      getApps().find((candidate) => candidate.name === name) ?? initializeApp(options, name);
-    this.auth = getAuth(app);
+    try {
+      const name = 'familyguard-parent';
+      const app: FirebaseApp =
+        getApps().find((candidate) => candidate.name === name) ?? initializeApp(options, name);
+      this.auth = getAuth(app);
+    } catch {
+      this.auth = null;
+    }
   }
 
   get configured(): boolean {
@@ -41,7 +45,7 @@ export class FirebaseAuthService {
 
   async register(name: string, email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
     try {
       await updateProfile(credential.user, { displayName: name.trim() });
       await sendEmailVerification(credential.user);
@@ -52,16 +56,20 @@ export class FirebaseAuthService {
 
   async login(email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
-    const credential = await signInWithEmailAndPassword(auth, email, password);
-    await reload(credential.user);
-    if (!credential.user.emailVerified) {
+    const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+    try {
+      await reload(credential.user);
+      if (!credential.user.emailVerified) {
+        throw new Error('Please verify your email address before signing in.');
+      }
+    } catch (error) {
       await signOut(auth);
-      throw new Error('Please verify your email address before signing in.');
+      throw error;
     }
   }
 
   async resetPassword(email: string): Promise<void> {
-    await sendPasswordResetEmail(this.requireAuth(), email);
+    await sendPasswordResetEmail(this.requireAuth(), email.trim());
   }
 
   async logout(): Promise<void> {
@@ -73,8 +81,15 @@ export class FirebaseAuthService {
     await this.auth.authStateReady();
     const user = this.auth.currentUser;
     if (!user) return null;
-    try { await reload(user); } catch { return null; }
-    return user.emailVerified ? user : null;
+    const alreadyVerified = user.emailVerified;
+    try {
+      await reload(user);
+      if (this.auth.currentUser !== user || !user.emailVerified) return null;
+      if (!alreadyVerified) await user.getIdToken(true);
+      return this.auth.currentUser === user ? user : null;
+    } catch {
+      return null;
+    }
   }
 
   async idToken(): Promise<string | null> {

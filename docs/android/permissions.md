@@ -9,4 +9,4 @@ In Android Studio: complete Standard setup; SDK Manager → Android SDK Platform
 
 Emulator uses http://10.0.2.2:8000/api/v1/. For physical USB run adb reverse tcp:8000 tcp:8000 and change debug base URL to http://127.0.0.1:8000/api/v1/. No LAN exposure required. Debug cleartext only; release refuses cleartext and has no API URL until configured. Firebase dependencies are dormant without configuration; no google-services plugin applied yet.
 
-After SDK setup, run scripts/build-android.ps1. No SDK, ADB, emulator, AVD or APK was present at the final SDK inspection. Android sources and dependency resolution still require the first full Gradle sync/build; XML parsing alone is not a native build.
+After SDK setup, run scripts/build-android.ps1. SDK Platform 36, Build Tools 35.0.0 and ADB are installed locally, and the debug APK builds. Current verification/lint outcomes and any runtime testing limits are recorded in docs/verification-report.md. A successful build does not establish device runtime behavior.

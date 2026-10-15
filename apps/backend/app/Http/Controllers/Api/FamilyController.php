@@ -39,6 +39,7 @@ final class FamilyController extends Controller
             $family->owner()->associate($request->user());
             $family->save();
             $family->members()->attach($request->user()->getKey(), ['role' => 'owner']);
+
             return $family;
         });
 
