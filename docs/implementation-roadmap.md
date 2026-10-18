@@ -6,3 +6,7 @@ Phase 3: consent-based device pairing and credential rotation. Acceptance: one-u
 Phase 4: opt-in minimized usage/location with validated ingestion, retention and deletion. Acceptance: no data after revocation; deduplication and background limits verified.
 Phase 5: approved WebRTC screen sharing. Acceptance: fresh MediaProjection prompt each session, foreground Stop, expiry, no capture reuse.
 Phase 6: production hardening, accessibility, Play policy/legal review, monitoring and disaster recovery. No feature advances before prerequisite authorization and consent tests pass.
+
+## Current execution — 19 October 2026
+
+The human authorized progressing through subsequent phases in prerequisite order. Phase 3C is the next bounded milestone: secure Android device-session persistence, restore/status/disconnect, affirmative approval and credential rotation. See [Phase 3C checklist](phase3c-device-session.md). Credential persistence code and JVM crypto checks are implemented; platform acceptance and lifecycle integration remain incomplete. Phase 4 starts after prerequisite consent, authorization and revocation acceptance, rather than treating compilation as feature completion. Main remains unchanged.
