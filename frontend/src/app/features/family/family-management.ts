@@ -124,7 +124,8 @@ export class FamilyManagement implements OnInit, OnDestroy {
 
   async createFamily(): Promise<void> {
     if (this.destroyed || this.creatingFamily()) return;
-    const name = this.familyForm.controls.name.value.trim();
+    const submittedName = this.familyForm.controls.name.value;
+    const name = submittedName.trim();
     if (name.length < 2 || name.length > 100 || this.familyForm.invalid) {
       this.familyForm.markAllAsTouched();
       return;
@@ -135,7 +136,7 @@ export class FamilyManagement implements OnInit, OnDestroy {
     try {
       const created = await firstValueFrom(this.api.createFamily(name));
       if (this.destroyed) return;
-      this.familyForm.reset();
+      if (this.familyForm.controls.name.value === submittedName) this.familyForm.reset();
       this.notice.set('Family created. You can now add a child profile.');
       await this.loadFamilies(1, created.data.id);
     } catch (error) {
@@ -148,7 +149,8 @@ export class FamilyManagement implements OnInit, OnDestroy {
   async createChild(): Promise<void> {
     const familyId = this.selectedFamilyId();
     if (this.destroyed || familyId === null || this.creatingChild()) return;
-    const displayName = this.childForm.controls.display_name.value.trim();
+    const submittedName = this.childForm.controls.display_name.value;
+    const displayName = submittedName.trim();
     if (!displayName || displayName.length > 100 || this.childForm.invalid) {
       this.childForm.markAllAsTouched();
       return;
@@ -160,7 +162,7 @@ export class FamilyManagement implements OnInit, OnDestroy {
     try {
       await firstValueFrom(this.api.createChild(familyId, displayName));
       if (request !== this.selectionRequest) return;
-      this.childForm.reset();
+      if (this.childForm.controls.display_name.value === submittedName) this.childForm.reset();
       this.notice.set('Child profile added. No device has been paired.');
       // Backend lists children by ascending ID; new profiles appear on the last page.
       const lastPage = Math.max(1, Math.ceil((this.childTotal() + 1) / 20));

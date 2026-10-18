@@ -59,6 +59,41 @@ describe('family and child management', () => {
     expect(fixture.nativeElement.textContent).toContain('Synthetic Child');
   });
 
+  it('preserves a newly edited family name while the submitted creation finishes', async () => {
+    const f = await setup();
+    const model = f.componentInstance;
+    const response = new Subject<{ data: typeof family }>();
+    api.createFamily.mockReturnValueOnce(response);
+    model.familyForm.controls.name.setValue('Submitted household');
+    const pending = model.createFamily();
+    model.familyForm.controls.name.setValue('Next household draft');
+    response.next({ data: family });
+    await pending;
+    expect(api.createFamily).toHaveBeenCalledWith('Submitted household');
+    expect(model.familyForm.controls.name.value).toBe('Next household draft');
+    expect(api.listFamilies).toHaveBeenCalledTimes(2);
+    expect(model.notice()).toContain('Family created');
+    expect(model.creatingFamily()).toBe(false);
+  });
+
+  it('preserves a newly edited child name while the submitted creation finishes', async () => {
+    const f = await setup();
+    const model = f.componentInstance;
+    const response = new Subject<{
+      data: { id: number; family_id: number; display_name: string };
+    }>();
+    api.createChild.mockReturnValueOnce(response);
+    model.childForm.controls.display_name.setValue('Submitted child');
+    const pending = model.createChild();
+    model.childForm.controls.display_name.setValue('Next child draft');
+    response.next({ data: { id: 9, family_id: 7, display_name: 'Submitted child' } });
+    await pending;
+    expect(api.createChild).toHaveBeenCalledWith(7, 'Submitted child');
+    expect(model.childForm.controls.display_name.value).toBe('Next child draft');
+    expect(api.listChildren).toHaveBeenCalledTimes(2);
+    expect(model.notice()).toContain('Child profile added');
+    expect(model.creatingChild()).toBe(false);
+  });
   it('rejects invalid family names before calling the API', async () => {
     const fixture = await setup();
     fixture.componentInstance.familyForm.controls.name.setValue(' ');
@@ -71,6 +106,7 @@ describe('family and child management', () => {
     fixture.componentInstance.familyForm.controls.name.setValue(' New Household ');
     await fixture.componentInstance.createFamily();
     expect(api.createFamily).toHaveBeenCalledWith('New Household');
+    expect(fixture.componentInstance.familyForm.controls.name.value).toBe('');
     expect(api.listFamilies).toHaveBeenCalledTimes(2);
   });
 
@@ -173,6 +209,7 @@ describe('family and child management', () => {
     fixture.componentInstance.childForm.controls.display_name.setValue(' New Child ');
     await fixture.componentInstance.createChild();
     expect(api.createChild).toHaveBeenCalledWith(7, 'New Child');
+    expect(fixture.componentInstance.childForm.controls.display_name.value).toBe('');
     expect(api.listChildren).toHaveBeenCalledTimes(2);
   });
 });
