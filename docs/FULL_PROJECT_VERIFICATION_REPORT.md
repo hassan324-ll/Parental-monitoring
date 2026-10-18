@@ -203,3 +203,14 @@ Final production build, production dependency audit, implementation commit, repo
 - `npm.cmd run build`: passed, initial 399.83 kB, estimated transfer 107.26 kB. Both `tsc --noEmit -p tsconfig.app.json` and `tsc --noEmit -p tsconfig.spec.json` passed. Prettier check passed for the two changed source files. `git diff --check` passed.
 - Previously verified database/Android results are historical evidence, not newly rerun checks: no unchanged backend or Android suite was repeated for this frontend-only correction.
 - Secure storage, real verified-parent/device/browser acceptance and CI blockers remain unchanged. No merge to main or Phase 3C work. The verified commit is recorded in Git history and the authorized pinned report-chat handoff.
+
+## Scheduled follow-up — 18 October 2026: family-page loading lifecycle
+
+- Started clean at `ce7016c`; fetched remote branch remained synchronized (zero ahead/behind). Read the pinned report chat and retained the existing Phase 3B-only scope.
+- Confirmed three failures before implementation changes: an older family load cleared loading while a newer selection was pending; out-of-order list responses replaced the latest family page; a response after component destruction started new child/device requests. Targeted reproduction: **6 passed, 3 failed**.
+- Minimal correction: family-page loads now capture/increment the existing request generation, ignore stale responses/errors and clear loading only while they own the current generation. Child/device selection continues to own its nested loading completion. Component destruction already invalidates the same generation. Removed the redundant increment in the empty-page path.
+- Added five regressions covering the three reproduced races plus current-page empty and failure controls. Current errors still display, and current empty pages clear the selection and loading state.
+- `npm.cmd test -- --watch=false`: **48 passed across 10 files**, exit 0; supersedes the earlier 43-test frontend total.
+- `npm.cmd run build`: passed, initial 399.83 kB / estimated transfer 107.25 kB; Connected Devices lazy chunk 9.39 kB. App/spec `tsc --noEmit` checks, changed-file Prettier and `git diff --check` passed.
+- Scope: Connected Devices component/spec and this report only. Backend/Android/database suites were not rerun for an unchanged area. No new monitoring, pairing approval, credential storage, Phase 3C or main changes.
+- Existing secure-storage, real verified-parent/browser/device and CI gates remain unresolved; this fix does not change release readiness. The verified commit is recorded in Git history and the authorized pinned report-chat handoff.

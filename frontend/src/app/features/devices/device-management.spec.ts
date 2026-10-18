@@ -49,6 +49,72 @@ describe('Connected Devices contracts and state', () => {
     fixture.detectChanges();
     return fixture;
   }
+  it('keeps loading active when an older family page finishes during a newer selection', async () => {
+    const f = await setup();
+    const olderChildren = new Subject<ReturnType<typeof page>>();
+    const newerChildren = new Subject<ReturnType<typeof page>>();
+    families.listChildren.mockReturnValueOnce(olderChildren).mockReturnValueOnce(newerChildren);
+    const olderPage = f.componentInstance.loadFamilies();
+    await vi.waitFor(() => expect(families.listChildren).toHaveBeenCalledTimes(2));
+    const newerSelection = f.componentInstance.selectFamily(2);
+    olderChildren.next(page([{ id: 3, family_id: 1, display_name: 'Old child' }]));
+    await olderPage;
+    expect(f.componentInstance.loading()).toBe(true);
+    newerChildren.next(page([{ id: 4, family_id: 2, display_name: 'Current child' }]));
+    await newerSelection;
+    expect(f.componentInstance.loading()).toBe(false);
+    expect(f.componentInstance.children()[0].display_name).toBe('Current child');
+  });
+
+  it('keeps the newest family page when responses arrive out of order', async () => {
+    const f = await setup();
+    const older = new Subject<ReturnType<typeof page>>();
+    const newer = new Subject<ReturnType<typeof page>>();
+    families.listFamilies.mockReturnValueOnce(older).mockReturnValueOnce(newer);
+    const olderPage = f.componentInstance.loadFamilies(1);
+    const newerPage = f.componentInstance.loadFamilies(2);
+    newer.next(page([{ id: 2, name: 'Current family', owner_id: 1 }], 2));
+    await newerPage;
+    older.next(page([{ id: 1, name: 'Old family', owner_id: 1 }], 1));
+    await olderPage;
+    expect(f.componentInstance.familyPage()).toBe(2);
+    expect(f.componentInstance.selectedFamilyId()).toBe(2);
+    expect(f.componentInstance.families()[0].name).toBe('Current family');
+  });
+
+  it('does not start child or device requests after the component is destroyed', async () => {
+    const f = await setup();
+    const response = new Subject<ReturnType<typeof page>>();
+    families.listFamilies.mockReturnValueOnce(response);
+    const pending = f.componentInstance.loadFamilies(2);
+    const childCalls = families.listChildren.mock.calls.length;
+    const deviceCalls = api.listDevices.mock.calls.length;
+    f.destroy();
+    response.next(page([{ id: 2, name: 'Late family', owner_id: 1 }], 2));
+    await pending;
+    expect(families.listChildren).toHaveBeenCalledTimes(childCalls);
+    expect(api.listDevices).toHaveBeenCalledTimes(deviceCalls);
+  });
+  it('clears the selected family and loading state for an empty current page', async () => {
+    const f = await setup();
+    families.listFamilies.mockReturnValueOnce(of(page([], 1, 1)));
+    await f.componentInstance.loadFamilies();
+    expect(f.componentInstance.selectedFamilyId()).toBeNull();
+    expect(f.componentInstance.children()).toEqual([]);
+    expect(f.componentInstance.devices()).toEqual([]);
+    expect(f.componentInstance.loading()).toBe(false);
+  });
+
+  it('still reports a current family-page failure and clears loading', async () => {
+    const f = await setup();
+    const response = new Subject<ReturnType<typeof page>>();
+    families.listFamilies.mockReturnValueOnce(response);
+    const pending = f.componentInstance.loadFamilies(2);
+    response.error(new Error('Current page unavailable'));
+    await pending;
+    expect(f.componentInstance.error()).toBe('Request failed. Please try again.');
+    expect(f.componentInstance.loading()).toBe(false);
+  });
   it('sends pagination parameters and renders all three pagination controls', async () => {
     const f = await setup();
     await f.componentInstance.loadFamilies(2);

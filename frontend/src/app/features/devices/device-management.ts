@@ -48,25 +48,26 @@ export class DeviceManagement implements OnInit, OnDestroy {
   }
 
   async loadFamilies(page = 1): Promise<void> {
+    const request = ++this.requestId;
     this.loading.set(true);
     this.error.set('');
     try {
       const response = await firstValueFrom(this.familiesApi.listFamilies(page));
+      if (request !== this.requestId) return;
       this.families.set(response.data);
       this.familyPage.set(response.meta.current_page);
       this.familyLastPage.set(response.meta.last_page);
       if (response.data.length) await this.selectFamily(response.data[0].id);
       else {
-        this.requestId++;
         this.selectedFamilyId.set(null);
         this.invitation.set(null);
         this.children.set([]);
         this.devices.set([]);
       }
     } catch (e) {
-      this.error.set(this.describe(e));
+      if (request === this.requestId) this.error.set(this.describe(e));
     } finally {
-      this.loading.set(false);
+      if (request === this.requestId) this.loading.set(false);
     }
   }
   async selectFamily(id: number, childPage = 1, devicePage = 1): Promise<void> {
