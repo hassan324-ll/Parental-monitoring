@@ -136,8 +136,10 @@ export class DeviceManagement implements OnInit, OnDestroy {
     try {
       await firstValueFrom(this.pairingApi.revokeDevice(familyId, device.public_id));
       if (request === this.requestId) {
-        await this.selectFamily(familyId, this.childPage(), this.devicePage());
-        this.notice.set('Device access revoked.');
+        const refresh = this.selectFamily(familyId, this.childPage(), this.devicePage());
+        const refreshRequest = this.requestId;
+        await refresh;
+        if (refreshRequest === this.requestId) this.notice.set('Device access revoked.');
       }
     } catch (e) {
       if (request === this.requestId) this.error.set(this.describe(e));

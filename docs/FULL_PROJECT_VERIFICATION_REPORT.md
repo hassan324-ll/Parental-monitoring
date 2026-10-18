@@ -214,3 +214,13 @@ Final production build, production dependency audit, implementation commit, repo
 - `npm.cmd run build`: passed, initial 399.83 kB / estimated transfer 107.25 kB; Connected Devices lazy chunk 9.39 kB. App/spec `tsc --noEmit` checks, changed-file Prettier and `git diff --check` passed.
 - Scope: Connected Devices component/spec and this report only. Backend/Android/database suites were not rerun for an unchanged area. No new monitoring, pairing approval, credential storage, Phase 3C or main changes.
 - Existing secure-storage, real verified-parent/browser/device and CI gates remain unresolved; this fix does not change release readiness. The verified commit is recorded in Git history and the authorized pinned report-chat handoff.
+
+## Scheduled follow-up — 18 October 2026: revocation refresh completion
+
+- Started clean at `c94e7ba`; fetched development branch was synchronized (zero ahead/behind). Read the latest pinned report-chat context; no scope expansion or stop instruction.
+- Reproduced two stale success paths: after successful API revocation, the list refresh can finish after a family switch or component destruction, and the outer revocation method then displayed `Device access revoked.` despite losing ownership of the current UI. Targeted baseline: **11 passed, 2 failed**.
+- Minimal fix: capture the generation assigned by the refresh and check it again after awaiting that refresh before displaying the success notice. Server revocation behavior is unchanged; only stale presentation is suppressed. The existing current-family success/confirmation test remains intact.
+- Added two regressions for family switching and destruction during refresh. `npm.cmd test -- --watch=false`: **50 passed across 10 files**, exit 0, superseding the earlier 48-test total.
+- `npm.cmd run build` passed (399.83 kB initial, estimated transfer 107.27 kB; device-management lazy chunk 9.44 kB). App/spec `tsc --noEmit`, changed-file Prettier and `git diff --check` passed.
+- Changed only the Connected Devices component/spec and this report. No repeated unchanged backend/Android/database suites, no new features, no monitoring, no enabled approval, no Phase 3C and no merge to main.
+- Secure credential storage, real verified-parent/browser/device/inbox acceptance and CI gaps remain unchanged release gates. The verified commit is available in Git history and the authorized pinned report-chat handoff.

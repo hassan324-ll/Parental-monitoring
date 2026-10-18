@@ -197,6 +197,55 @@ describe('Connected Devices contracts and state', () => {
       confirm.mockRestore();
     }
   });
+  it('does not display a stale revocation notice after switching during its refresh', async () => {
+    const f = await setup();
+    const refresh = new Subject<ReturnType<typeof page>>();
+    families.listChildren.mockReturnValueOnce(refresh);
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    try {
+      const pending = f.componentInstance.revoke({
+        id: 4,
+        public_id: 'synthetic-id',
+        name: 'Synthetic phone',
+        android_version: null,
+        last_seen_at: null,
+        revoked_at: null,
+      });
+      await vi.waitFor(() => expect(f.componentInstance.loading()).toBe(true));
+      await f.componentInstance.selectFamily(2);
+      refresh.next(page([]));
+      await pending;
+      expect(f.componentInstance.selectedFamilyId()).toBe(2);
+      expect(f.componentInstance.notice()).toBe('');
+      expect(f.componentInstance.busy()).toBe(false);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it('does not display a revocation notice after destruction during its refresh', async () => {
+    const f = await setup();
+    const refresh = new Subject<ReturnType<typeof page>>();
+    families.listChildren.mockReturnValueOnce(refresh);
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    try {
+      const pending = f.componentInstance.revoke({
+        id: 4,
+        public_id: 'synthetic-id',
+        name: 'Synthetic phone',
+        android_version: null,
+        last_seen_at: null,
+        revoked_at: null,
+      });
+      await vi.waitFor(() => expect(f.componentInstance.loading()).toBe(true));
+      f.destroy();
+      refresh.next(page([]));
+      await pending;
+      expect(f.componentInstance.notice()).toBe('');
+    } finally {
+      confirm.mockRestore();
+    }
+  });
   it('requires confirmation before revocation and refreshes the current family', async () => {
     const f = await setup();
     const device = {
