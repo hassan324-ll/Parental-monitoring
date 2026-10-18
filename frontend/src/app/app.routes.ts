@@ -17,9 +17,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/family/family-management').then((m) => m.FamilyManagement),
   },
+  {
+    path: 'devices',
+    title: 'Connected Devices | FamilyGuard',
+    canActivate: [parentAuthGuard],
+    loadComponent: () => import('./features/devices/device-management').then(m => m.DeviceManagement),
+  },
   ...[
     ['dashboard', 'Dashboard'],
-    ['devices', 'Connected Devices'],
     ['activity', 'Application Activity'],
     ['screen-time', 'Screen Time'],
     ['location', 'GPS Location'],
