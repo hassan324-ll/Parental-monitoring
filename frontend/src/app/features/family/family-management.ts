@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -11,9 +11,11 @@ import { ChildProfile, Family, FamilyApiService } from '../../core/family-api.se
   templateUrl: './family-management.html',
   styleUrl: './family-management.scss',
 })
-export class FamilyManagement implements OnInit {
+export class FamilyManagement implements OnInit, OnDestroy {
   private readonly api = inject(FamilyApiService);
   private childrenRequest = 0;
+  private selectionRequest = 0;
+  private destroyed = false;
 
   readonly families = signal<Family[]>([]);
   readonly children = signal<ChildProfile[]>([]);
@@ -53,12 +55,19 @@ export class FamilyManagement implements OnInit {
     void this.loadFamilies();
   }
 
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    this.selectionRequest++;
+    this.childrenRequest++;
+  }
+
   async loadFamilies(page = 1, preferredFamilyId?: number): Promise<void> {
-    if (this.loadingFamilies()) return;
+    if (this.destroyed || this.loadingFamilies()) return;
     this.loadingFamilies.set(true);
     this.familyError.set('');
     try {
       const result = await firstValueFrom(this.api.listFamilies(page));
+      if (this.destroyed) return;
       this.families.set(result.data);
       this.familyPage.set(result.meta.current_page);
       this.familyLastPage.set(result.meta.last_page);
@@ -69,13 +78,14 @@ export class FamilyManagement implements OnInit {
       if (choice) {
         await this.selectFamily(choice.id);
       } else {
+        this.selectionRequest++;
         this.selectedFamilyId.set(null);
         this.childrenRequest++;
         this.children.set([]);
         this.childTotal.set(0);
       }
     } catch (error) {
-      this.familyError.set(this.describeError(error));
+      if (!this.destroyed) this.familyError.set(this.describeError(error));
     } finally {
       this.loadingFamilies.set(false);
     }
@@ -83,7 +93,8 @@ export class FamilyManagement implements OnInit {
 
   async selectFamily(id: number): Promise<void> {
     const exists = this.families().some((family) => family.id === id);
-    if (!exists) return;
+    if (this.destroyed || !exists) return;
+    this.selectionRequest++;
     this.selectedFamilyId.set(id);
     this.children.set([]);
     this.childPage.set(1);
@@ -93,7 +104,7 @@ export class FamilyManagement implements OnInit {
   }
 
   async loadChildren(id = this.selectedFamilyId(), page = 1): Promise<void> {
-    if (id === null || id !== this.selectedFamilyId()) return;
+    if (this.destroyed || id === null || id !== this.selectedFamilyId()) return;
     const request = ++this.childrenRequest;
     this.loadingChildren.set(true);
     this.childError.set('');
@@ -112,7 +123,7 @@ export class FamilyManagement implements OnInit {
   }
 
   async createFamily(): Promise<void> {
-    if (this.creatingFamily()) return;
+    if (this.destroyed || this.creatingFamily()) return;
     const name = this.familyForm.controls.name.value.trim();
     if (name.length < 2 || name.length > 100 || this.familyForm.invalid) {
       this.familyForm.markAllAsTouched();
@@ -123,11 +134,12 @@ export class FamilyManagement implements OnInit {
     this.notice.set('');
     try {
       const created = await firstValueFrom(this.api.createFamily(name));
+      if (this.destroyed) return;
       this.familyForm.reset();
       this.notice.set('Family created. You can now add a child profile.');
       await this.loadFamilies(1, created.data.id);
     } catch (error) {
-      this.familyError.set(this.describeError(error));
+      if (!this.destroyed) this.familyError.set(this.describeError(error));
     } finally {
       this.creatingFamily.set(false);
     }
@@ -135,24 +147,26 @@ export class FamilyManagement implements OnInit {
 
   async createChild(): Promise<void> {
     const familyId = this.selectedFamilyId();
-    if (familyId === null || this.creatingChild()) return;
+    if (this.destroyed || familyId === null || this.creatingChild()) return;
     const displayName = this.childForm.controls.display_name.value.trim();
     if (!displayName || displayName.length > 100 || this.childForm.invalid) {
       this.childForm.markAllAsTouched();
       return;
     }
+    const request = this.selectionRequest;
     this.creatingChild.set(true);
     this.childError.set('');
     this.notice.set('');
     try {
       await firstValueFrom(this.api.createChild(familyId, displayName));
+      if (request !== this.selectionRequest) return;
       this.childForm.reset();
       this.notice.set('Child profile added. No device has been paired.');
       // Backend lists children by ascending ID; new profiles appear on the last page.
       const lastPage = Math.max(1, Math.ceil((this.childTotal() + 1) / 20));
       await this.loadChildren(familyId, lastPage);
     } catch (error) {
-      this.childError.set(this.describeError(error));
+      if (request === this.selectionRequest) this.childError.set(this.describeError(error));
     } finally {
       this.creatingChild.set(false);
     }

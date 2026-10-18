@@ -224,3 +224,14 @@ Final production build, production dependency audit, implementation commit, repo
 - `npm.cmd run build` passed (399.83 kB initial, estimated transfer 107.27 kB; device-management lazy chunk 9.44 kB). App/spec `tsc --noEmit`, changed-file Prettier and `git diff --check` passed.
 - Changed only the Connected Devices component/spec and this report. No repeated unchanged backend/Android/database suites, no new features, no monitoring, no enabled approval, no Phase 3C and no merge to main.
 - Secure credential storage, real verified-parent/browser/device/inbox acceptance and CI gaps remain unchanged release gates. The verified commit is available in Git history and the authorized pinned report-chat handoff.
+
+## Manual loop continuation — 18 October 2026: family form context and teardown
+
+- Started clean at `5b6b945`; fetched development branch remained synchronized (zero ahead/behind). Continued existing Phase 2E/3B stabilization only; no new features or expanded authority from the report chat.
+- Reproduced three family-form failures before fixes: old child-creation success erased a draft for another family and showed stale status; a failure after switching away/back displayed an obsolete error; a completion after page destruction started another child request. Targeted baseline: **4 passed, 3 failed**.
+- Fix: track the selected-family generation for child submissions and invalidate it on selection changes, empty selection and teardown. Ignore stale success/error callbacks. Guard family/child loading and family creation against starting or chaining requests after teardown; existing child-load request generation is invalidated too. Requests already submitted to the backend are not undone or represented as cancelled mutations.
+- Added six regressions: three reproduced failures, current-family error/draft preservation, family-list completion after teardown and family-creation completion after teardown. Existing current-family creation tests remain intact.
+- Final frontend result: **56 passed across 10 files**, exit 0, superseding the earlier 50-test total. Intermediate suite after the first three new regressions passed 53 tests; the final six-regression result is 56.
+- `npm.cmd run build` passed (399.83 kB initial, estimated transfer 107.25 kB; family-management lazy chunk 13.54 kB). App/spec `tsc --noEmit`, changed-file Prettier and `git diff --check` passed.
+- Files changed: family-management component/spec and this report only. No backend/Android/database changes or repeated unchanged suites; no main merge, Phase 3C, monitoring features or enabled pairing approval.
+- Secure credential storage, real verified-parent/browser/device/inbox acceptance and CI limitations remain unchanged. The verified commit is recorded in Git history and the authorized pinned report-chat handoff.
