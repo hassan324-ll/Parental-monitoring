@@ -184,3 +184,10 @@ Final production build, production dependency audit, implementation commit, repo
 - Final strict app/spec TypeScript and Prettier checks passed; production npm audit returned zero vulnerabilities.
 - Final production build rerun was blocked: restricted execution returned spawn EPERM, and both authorized-execution retries timed out in automatic approval review. The baseline production build passed, and post-fix Angular tests compiled the templates, but a post-fix production bundle is not claimed.
 - Recurring 30-minute heartbeat creation was attempted twice; both returned approval-review timeout errors. No active automation is confirmed. The bounded continuation prompt will be posted to the authorized pinned report chat; autonomous scheduled continuation cannot be claimed until scheduling succeeds.
+
+### Final confirmed outcomes (supersedes earlier pending entries)
+- Post-fix Angular production build passed, exit 0: initial bundle 399.83 kB, estimated transfer 107.26 kB; final generated device-management lazy chunk 9.30 kB. The intermittent permission failures were resolved for this command without modifying system permissions.
+- Implementation/report commit 12c2467 was pushed to phase3b-pairing-ui-plan. No main merge or force push.
+- Posted the verified status and bounded continuation prompt to the pinned FamilyGuard Daily Development Report chat.
+- Recurring heartbeat successfully created after correcting its target-thread argument: automation familyguard-development-verification-loop, ACTIVE, every 30 minutes, attached to this Codex chat. Earlier timeout/invalid-argument attempts did not create an active automation. Every iteration remains confined to authorized Phase 3B stabilization and must honor human stop instructions.
+- Browser/device/inbox acceptance and missing secure storage remain pending; a successful production build does not resolve those gates.
