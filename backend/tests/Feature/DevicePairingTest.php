@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DevicePairingTest extends TestCase
@@ -18,6 +20,7 @@ class DevicePairingTest extends TestCase
         $child = $this->postJson("/api/v1/families/{$family}/children", [
             'display_name' => 'Synthetic Child',
         ])->assertCreated()->json('data.id');
+
         return [$family, $child];
     }
 
@@ -94,5 +97,54 @@ class DevicePairingTest extends TestCase
         ])->assertCreated()->json('device_token');
         $this->withToken($token)->postJson('/api/v1/companion/disconnect')->assertOk();
         $this->withToken($token)->getJson('/api/v1/companion/me')->assertUnauthorized();
+    }
+
+    public function test_pairing_devices_are_isolated_from_other_families_and_viewers_cannot_manage(): void
+    {
+        $parent = User::factory()->create();
+        [$family, $child] = $this->familyAndChild($parent);
+        $code = $this->postJson("/api/v1/families/{$family}/children/{$child}/pairings")->assertCreated()->json('code');
+        $result = $this->postJson('/api/v1/device-pairings/approve', [
+            'code' => $code, 'approved' => true, 'device_name' => 'Synthetic phone',
+        ])->assertCreated();
+        $id = $result->json('device.id');
+        $token = $result->json('device_token');
+        $this->assertDatabaseHas('devices', ['public_id' => $id, 'credential_hash' => hash('sha256', $token)]);
+
+        $this->actingAs(User::factory()->create(), 'firebase-parent');
+        $this->getJson("/api/v1/families/{$family}/devices")->assertNotFound();
+        $this->deleteJson("/api/v1/families/{$family}/devices/{$id}")->assertNotFound();
+
+        $viewer = User::factory()->create();
+        DB::table('family_members')->insert(['family_id' => $family, 'user_id' => $viewer->id, 'role' => 'viewer']);
+        $this->actingAs($viewer, 'firebase-parent');
+        $this->getJson("/api/v1/families/{$family}/devices")->assertOk()->assertDontSee('credential_hash')->assertDontSee($token);
+        $this->postJson("/api/v1/families/{$family}/children/{$child}/pairings")->assertForbidden();
+        $this->deleteJson("/api/v1/families/{$family}/devices/{$id}")->assertForbidden();
+        $this->withToken($token)->getJson('/api/v1/companion/me')->assertOk();
+    }
+
+    public function test_invalid_codes_missing_approval_and_expiration_boundary_do_not_create_devices(): void
+    {
+        $this->postJson('/api/v1/device-pairings/preview', ['code' => 'not-a-code'])->assertUnprocessable();
+        [$family, $child] = $this->familyAndChild(User::factory()->create());
+        $invite = $this->postJson("/api/v1/families/{$family}/children/{$child}/pairings")->assertCreated()->json();
+        $this->postJson('/api/v1/device-pairings/approve', ['code' => $invite['code'], 'device_name' => 'Synthetic phone'])->assertUnprocessable();
+        $this->postJson('/api/v1/device-pairings/preview', ['code' => strtolower($invite['code'])])->assertOk();
+        $this->travelTo(Carbon::parse($invite['expires_at']));
+        $this->postJson('/api/v1/device-pairings/preview', ['code' => $invite['code']])->assertNotFound();
+        $this->postJson('/api/v1/device-pairings/approve', ['code' => $invite['code'], 'approved' => true, 'device_name' => 'Synthetic phone'])->assertNotFound();
+        $this->assertDatabaseCount('devices', 0);
+    }
+
+    public function test_pairing_public_endpoints_are_rate_limited_and_device_tokens_are_separate(): void
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->postJson('/api/v1/device-pairings/preview', ['code' => str_repeat('0', 32)])->assertNotFound();
+        }
+        $this->postJson('/api/v1/device-pairings/preview', ['code' => str_repeat('0', 32)])->assertTooManyRequests();
+        $this->getJson('/api/v1/companion/me')->assertUnauthorized();
+        $this->withToken('synthetic.firebase.token')->getJson('/api/v1/companion/me')->assertUnauthorized();
+        $this->withToken(str_repeat('a', 64))->getJson('/api/v1/companion/me')->assertUnauthorized();
     }
 }

@@ -24,6 +24,7 @@ final class RequirePairedDevice
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
         $request->attributes->set('paired_device', $device);
+
         return $next($request);
     }
 }

@@ -21,3 +21,5 @@
 **/phpunit.local.xml
 
 **/.idea/caches/
+
+**/.kotlin/

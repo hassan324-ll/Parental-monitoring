@@ -1,7 +1,9 @@
 <section class="family-page">
   <span class="eyebrow">FAMILYGUARD · FAMILY PROFILES</span>
   <h1>My Children & Families</h1>
-  <p class="subtitle">Manage child profiles linked to your verified parent account. No device monitoring is active.</p>
+  <p class="subtitle">
+    Manage child profiles linked to your verified parent account. No device monitoring is active.
+  </p>
 
   @if (notice()) {
     <p class="notice" role="status">{{ notice() }}</p>
@@ -13,9 +15,17 @@
       <form [formGroup]="familyForm" (ngSubmit)="createFamily()">
         <label for="family-name">New family name</label>
         <div class="input-row">
-          <input id="family-name" type="text" formControlName="name" maxlength="100"
-            autocomplete="off" placeholder="Example: Our Family" />
-          <button type="submit" [disabled]="creatingFamily() || loadingFamilies()">Add family</button>
+          <input
+            id="family-name"
+            type="text"
+            formControlName="name"
+            maxlength="100"
+            autocomplete="off"
+            placeholder="Example: Our Family"
+          />
+          <button type="submit" [disabled]="creatingFamily() || loadingFamilies()">
+            Add family
+          </button>
         </div>
         @if (familyForm.controls.name.touched && familyForm.controls.name.invalid) {
           <p class="error">Enter a family name between 2 and 100 characters.</p>
@@ -32,10 +42,13 @@
       } @else {
         <div class="family-list" role="group" aria-label="Choose a family">
           @for (family of families(); track family.id) {
-            <button type="button" class="family-item"
+            <button
+              type="button"
+              class="family-item"
               [class.active]="selectedFamilyId() === family.id"
               [attr.aria-pressed]="selectedFamilyId() === family.id"
-              (click)="selectFamily(family.id)">
+              (click)="selectFamily(family.id)"
+            >
               <span class="family-name">{{ family.name }}</span>
               <small>{{ family.children_count ?? 0 }} children</small>
             </button>
@@ -44,11 +57,21 @@
       }
       @if (familyLastPage() > 1) {
         <div class="pager">
-          <button type="button" (click)="loadFamilies(familyPage() - 1)"
-            [disabled]="familyPage() <= 1 || loadingFamilies()">Previous</button>
+          <button
+            type="button"
+            (click)="loadFamilies(familyPage() - 1)"
+            [disabled]="familyPage() <= 1 || loadingFamilies()"
+          >
+            Previous
+          </button>
           <span>Page {{ familyPage() }} / {{ familyLastPage() }}</span>
-          <button type="button" (click)="loadFamilies(familyPage() + 1)"
-            [disabled]="familyPage() >= familyLastPage() || loadingFamilies()">Next</button>
+          <button
+            type="button"
+            (click)="loadFamilies(familyPage() + 1)"
+            [disabled]="familyPage() >= familyLastPage() || loadingFamilies()"
+          >
+            Next
+          </button>
         </div>
       }
     </section>
@@ -56,13 +79,23 @@
     <section class="panel" aria-labelledby="children-heading">
       <h2 id="children-heading">Child profiles</h2>
       @if (selectedFamily(); as family) {
-        <p class="status">Selected family: <strong>{{ family.name }}</strong></p>
+        <p class="status">
+          Selected family: <strong>{{ family.name }}</strong>
+        </p>
         <form [formGroup]="childForm" (ngSubmit)="createChild()">
           <label for="child-name">Child display name</label>
           <div class="input-row">
-            <input id="child-name" type="text" formControlName="display_name" maxlength="100"
-              autocomplete="off" placeholder="Display name" />
-            <button type="submit" [disabled]="creatingChild() || loadingChildren()">Add child</button>
+            <input
+              id="child-name"
+              type="text"
+              formControlName="display_name"
+              maxlength="100"
+              autocomplete="off"
+              placeholder="Display name"
+            />
+            <button type="submit" [disabled]="creatingChild() || loadingChildren()">
+              Add child
+            </button>
           </div>
           @if (childForm.controls.display_name.touched && childForm.controls.display_name.invalid) {
             <p class="error">Enter a display name (up to 100 characters).</p>
@@ -88,11 +121,21 @@
         }
         @if (childLastPage() > 1) {
           <div class="pager">
-            <button type="button" (click)="loadChildren(family.id, childPage() - 1)"
-              [disabled]="childPage() <= 1 || loadingChildren()">Previous</button>
+            <button
+              type="button"
+              (click)="loadChildren(family.id, childPage() - 1)"
+              [disabled]="childPage() <= 1 || loadingChildren()"
+            >
+              Previous
+            </button>
             <span>Page {{ childPage() }} / {{ childLastPage() }}</span>
-            <button type="button" (click)="loadChildren(family.id, childPage() + 1)"
-              [disabled]="childPage() >= childLastPage() || loadingChildren()">Next</button>
+            <button
+              type="button"
+              (click)="loadChildren(family.id, childPage() + 1)"
+              [disabled]="childPage() >= childLastPage() || loadingChildren()"
+            >
+              Next
+            </button>
           </div>
         }
       } @else {
@@ -100,5 +143,8 @@
       }
     </section>
   </div>
-  <p class="disclaimer">Pairing and device permissions will be added in a later phase. Private application messages are not collected.</p>
+  <p class="disclaimer">
+    Pairing and device permissions will be added in a later phase. Private application messages are
+    not collected.
+  </p>
 </section>

@@ -41,7 +41,9 @@ describe('protected family HTTP contracts', () => {
 
   it('scopes child listing and creation to one family', () => {
     api.listChildren(7, 2).subscribe();
-    const get = http.expectOne((r) => r.url === url + '/7/children' && r.params.get('page') === '2');
+    const get = http.expectOne(
+      (r) => r.url === url + '/7/children' && r.params.get('page') === '2',
+    );
     expect(get.request.method).toBe('GET');
     get.flush({ data: [], meta: { current_page: 2, last_page: 2, total: 21 } });
 

@@ -105,6 +105,7 @@ final class DevicePairingController extends Controller
         if (! $result) {
             return response()->json(['message' => 'Pairing invitation unavailable or expired.'], 404);
         }
+
         return response()->json($result, 201)->header('Cache-Control', 'no-store');
     }
 

@@ -48,15 +48,16 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  else->"Foundation preview. This device is not paired. No monitoring is active."
  })
  if(index==1){
- OutlinedTextField(value=pairingState.code,onValueChange=pairing::updateCode,label={Text("32-character invitation code")},keyboardOptions=KeyboardOptions(capitalization=KeyboardCapitalization.Characters),singleLine=true)
+ OutlinedTextField(value=pairingState.code,onValueChange=pairing::updateCode,enabled=!pairingState.busy,label={Text("32-character invitation code")},keyboardOptions=KeyboardOptions(capitalization=KeyboardCapitalization.Characters),singleLine=true)
  Button(onClick=pairing::preview,enabled=!pairingState.busy && pairingState.code.length==32){Text("Review invitation")}
  if(pairingState.preview!=null){
  Text("Family: "+pairingState.preview!!.familyName)
  Text("Child: "+pairingState.preview!!.childName)
  Text("Pairing would allow this device to identify itself to the family. It does not enable monitoring permissions.")
  Button(onClick=pairing::approve,enabled=false){Text("Approve pairing (coming soon)")}
- Button(onClick=pairing::cancel){Text("Cancel")}
+
  }
+ Button(onClick=pairing::cancel,enabled=pairingState.busy || pairingState.code.isNotBlank() || pairingState.preview!=null){Text("Cancel")}
  if(pairingState.message.isNotBlank()) Text(pairingState.message)
  }
  if(index==3)Button(onClick={context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Review Android permissions")}

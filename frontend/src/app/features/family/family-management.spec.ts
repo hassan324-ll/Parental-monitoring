@@ -14,18 +14,24 @@ describe('family and child management', () => {
 
   beforeEach(async () => {
     api = {
-      listFamilies: vi.fn().mockReturnValue(of({
-        data: [family],
-        meta: { current_page: 1, last_page: 1, total: 1 },
-      })),
+      listFamilies: vi.fn().mockReturnValue(
+        of({
+          data: [family],
+          meta: { current_page: 1, last_page: 1, total: 1 },
+        }),
+      ),
       createFamily: vi.fn().mockReturnValue(of({ data: family })),
-      listChildren: vi.fn().mockReturnValue(of({
-        data: [{ id: 3, family_id: 7, display_name: 'Synthetic Child' }],
-        meta: { current_page: 1, last_page: 1, total: 1 },
-      })),
-      createChild: vi.fn().mockReturnValue(of({
-        data: { id: 4, family_id: 7, display_name: 'New Child' },
-      })),
+      listChildren: vi.fn().mockReturnValue(
+        of({
+          data: [{ id: 3, family_id: 7, display_name: 'Synthetic Child' }],
+          meta: { current_page: 1, last_page: 1, total: 1 },
+        }),
+      ),
+      createChild: vi.fn().mockReturnValue(
+        of({
+          data: { id: 4, family_id: 7, display_name: 'New Child' },
+        }),
+      ),
     };
     await TestBed.configureTestingModule({
       imports: [FamilyManagement],
@@ -36,6 +42,10 @@ describe('family and child management', () => {
   async function setup() {
     const fixture = TestBed.createComponent(FamilyManagement);
     fixture.detectChanges();
+    await vi.waitFor(() => {
+      expect(fixture.componentInstance.loadingFamilies()).toBe(false);
+      expect(fixture.componentInstance.loadingChildren()).toBe(false);
+    });
     await fixture.whenStable();
     fixture.detectChanges();
     return fixture;

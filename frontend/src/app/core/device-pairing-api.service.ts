@@ -28,18 +28,22 @@ export class DevicePairingApiService {
   }
   createInvitation(familyId: number, childId: number): Observable<PairingInvitation> {
     if (!Number.isSafeInteger(childId) || childId <= 0) throw new Error('Invalid child ID');
-    return this.http.post<PairingInvitation>(
-      this.familyUrl(familyId) + '/children/' + childId + '/pairings', {}
-    ).pipe(timeout(10000));
+    return this.http
+      .post<PairingInvitation>(this.familyUrl(familyId) + '/children/' + childId + '/pairings', {})
+      .pipe(timeout(10000));
   }
   listDevices(familyId: number, page = 1): Observable<PageResponse<PairedDevice>> {
-    return this.http.get<PageResponse<PairedDevice>>(this.familyUrl(familyId) + '/devices', {
-      params: { page },
-    }).pipe(timeout(10000));
+    return this.http
+      .get<PageResponse<PairedDevice>>(this.familyUrl(familyId) + '/devices', {
+        params: { page },
+      })
+      .pipe(timeout(10000));
   }
   revokeDevice(familyId: number, publicId: string): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(
-      this.familyUrl(familyId) + '/devices/' + encodeURIComponent(publicId)
-    ).pipe(timeout(10000));
+    return this.http
+      .delete<{ message: string }>(
+        this.familyUrl(familyId) + '/devices/' + encodeURIComponent(publicId),
+      )
+      .pipe(timeout(10000));
   }
 }

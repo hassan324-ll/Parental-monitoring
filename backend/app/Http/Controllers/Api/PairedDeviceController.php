@@ -15,6 +15,7 @@ final class PairedDeviceController extends Controller
         $family = FamilyAccess::findVisible($request->user(), $family);
         $devices = $family->devices()->with('child:id,display_name')
             ->orderByDesc('id')->paginate(20);
+
         return response()->json([
             'data' => $devices->items(),
             'meta' => ['current_page' => $devices->currentPage(),
@@ -30,6 +31,7 @@ final class PairedDeviceController extends Controller
         $paired->credential_hash = null;
         $paired->revoked_at = now();
         $paired->save();
+
         return response()->json(['message' => 'Device access revoked.']);
     }
 }

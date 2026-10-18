@@ -7,12 +7,16 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
+interface PairingPreviewApi {
+    suspend fun preview(code: String): PairingRepository.Preview
+}
+
 /** Network-only pairing API. Never log invitation codes or device credentials. */
-class PairingRepository {
+class PairingRepository : PairingPreviewApi {
     data class Preview(val familyName: String, val childName: String)
     data class Approval(val deviceToken: String, val deviceName: String)
 
-    suspend fun preview(code: String): Preview = withContext(Dispatchers.IO) {
+    override suspend fun preview(code: String): Preview = withContext(Dispatchers.IO) {
         val result = request("device-pairings/preview", JSONObject().put("code", code))
         Preview(result.getString("family_name"), result.getString("child_name"))
     }
@@ -32,6 +36,7 @@ class PairingRepository {
         }
         val connection = (URL(BuildConfig.API_BASE_URL + path).openConnection() as HttpURLConnection)
         try {
+            connection.instanceFollowRedirects = false
             connection.requestMethod = "POST"
             connection.connectTimeout = 10000
             connection.readTimeout = 10000

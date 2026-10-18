@@ -21,7 +21,8 @@ export const routes: Routes = [
     path: 'devices',
     title: 'Connected Devices | FamilyGuard',
     canActivate: [parentAuthGuard],
-    loadComponent: () => import('./features/devices/device-management').then(m => m.DeviceManagement),
+    loadComponent: () =>
+      import('./features/devices/device-management').then((m) => m.DeviceManagement),
   },
   ...[
     ['dashboard', 'Dashboard'],
