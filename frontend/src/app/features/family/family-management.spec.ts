@@ -94,6 +94,12 @@ describe('family and child management', () => {
     expect(model.notice()).toContain('Child profile added');
     expect(model.creatingChild()).toBe(false);
   });
+  it('does not infer device pairing status from child profiles without device data', async () => {
+    const fixture = await setup();
+    expect(fixture.nativeElement.querySelector('.children-list').textContent).not.toContain(
+      'No device paired',
+    );
+  });
   it('rejects invalid family names before calling the API', async () => {
     const fixture = await setup();
     fixture.componentInstance.familyForm.controls.name.setValue(' ');
