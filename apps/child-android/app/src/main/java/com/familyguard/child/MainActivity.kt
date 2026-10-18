@@ -17,10 +17,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.*
 import com.familyguard.child.ui.CompanionViewModel
+import com.familyguard.child.ui.PairingViewModel
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme{CompanionApp()}}}}
 @Composable fun CompanionApp(){
  val nav=rememberNavController()
  val pages=listOf("Welcome","Device Pairing","Monitoring Disclosure","Permission Overview","Connected Device Home","Activity Sharing Settings","Location Sharing Settings","Screen Sharing Requests","Privacy and Help","Connection Settings")
+ val pairing:PairingViewModel=viewModel()
+ val pairingState by pairing.state.collectAsStateWithLifecycle()
  val model:CompanionViewModel=viewModel()
  val status by model.status.collectAsStateWithLifecycle()
  val context=LocalContext.current
@@ -42,6 +47,18 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  9->"Emulator API: "+BuildConfig.API_BASE_URL+". Release API must be configured before distribution."
  else->"Foundation preview. This device is not paired. No monitoring is active."
  })
+ if(index==1){
+ OutlinedTextField(value=pairingState.code,onValueChange=pairing::updateCode,label={Text("32-character invitation code")},keyboardOptions=KeyboardOptions(capitalization=KeyboardCapitalization.Characters),singleLine=true)
+ Button(onClick=pairing::preview,enabled=!pairingState.busy && pairingState.code.length==32){Text("Review invitation")}
+ if(pairingState.preview!=null){
+ Text("Family: "+pairingState.preview!!.familyName)
+ Text("Child: "+pairingState.preview!!.childName)
+ Text("Pairing would allow this device to identify itself to the family. It does not enable monitoring permissions.")
+ Button(onClick=pairing::approve,enabled=false){Text("Approve pairing (coming soon)")}
+ Button(onClick=pairing::cancel){Text("Cancel")}
+ }
+ if(pairingState.message.isNotBlank()) Text(pairingState.message)
+ }
  if(index==3)Button(onClick={context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Review Android permissions")}
  if(index==4||index==9){Text(status);Button(onClick=model::checkHealth){Text("Check API connection")}}
  }
