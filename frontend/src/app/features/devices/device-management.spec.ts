@@ -85,6 +85,52 @@ describe('Connected Devices contracts and state', () => {
     expect(f.nativeElement.textContent).toContain('This invitation has expired');
     expect(f.nativeElement.textContent).not.toContain('B'.repeat(32));
   });
+  it('ignores a revocation failure after switching to another family', async () => {
+    const f = await setup();
+    const response = new Subject<{ message: string }>();
+    api.revokeDevice.mockReturnValue(response);
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    try {
+      const pending = f.componentInstance.revoke({
+        id: 4,
+        public_id: 'synthetic-id',
+        name: 'Synthetic phone',
+        android_version: null,
+        last_seen_at: null,
+        revoked_at: null,
+      });
+      await f.componentInstance.selectFamily(2);
+      response.error(new Error('Old family request failed'));
+      await pending;
+      expect(f.componentInstance.selectedFamilyId()).toBe(2);
+      expect(f.componentInstance.error()).toBe('');
+      expect(f.componentInstance.busy()).toBe(false);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+  it('still displays a revocation failure for the current family', async () => {
+    const f = await setup();
+    const response = new Subject<{ message: string }>();
+    api.revokeDevice.mockReturnValue(response);
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    try {
+      const pending = f.componentInstance.revoke({
+        id: 4,
+        public_id: 'synthetic-id',
+        name: 'Synthetic phone',
+        android_version: null,
+        last_seen_at: null,
+        revoked_at: null,
+      });
+      response.error(new Error('Current family request failed'));
+      await pending;
+      expect(f.componentInstance.error()).toBe('Request failed. Please try again.');
+      expect(f.componentInstance.busy()).toBe(false);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
   it('requires confirmation before revocation and refreshes the current family', async () => {
     const f = await setup();
     const device = {

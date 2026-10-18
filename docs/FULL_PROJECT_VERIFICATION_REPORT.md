@@ -191,3 +191,15 @@ Final production build, production dependency audit, implementation commit, repo
 - Posted the verified status and bounded continuation prompt to the pinned FamilyGuard Daily Development Report chat.
 - Recurring heartbeat successfully created after correcting its target-thread argument: automation familyguard-development-verification-loop, ACTIVE, every 30 minutes, attached to this Codex chat. Earlier timeout/invalid-argument attempts did not create an active automation. Every iteration remains confined to authorized Phase 3B stabilization and must honor human stop instructions.
 - Browser/device/inbox acceptance and missing secure storage remain pending; a successful production build does not resolve those gates.
+
+## Scheduled follow-up — 18 October 2026: stale revocation failure
+
+- Started from clean, synchronized `phase3b-pairing-ui-plan` at `292019b`; fetch reported zero ahead/behind. No newer human instruction expanded the Phase 3B scope.
+- Confirmed bug: a device revocation that fails after switching families displayed the old request's error on the newly selected family. The existing success and invitation paths already used request generations; the revocation catch did not.
+- Added a failing regression first. Targeted run: 4 passed, 1 failed; the stale error was reproduced as `Request failed. Please try again.` on family 2.
+- Fix: apply the existing request-generation comparison in the revocation catch. Add a second test proving current-family errors remain visible and busy state clears.
+- Files changed: `frontend/src/app/features/devices/device-management.ts` and its `.spec.ts`, plus this report. No backend, Android, approval, credential-storage or monitoring changes.
+- Verification: `npm.cmd test -- --watch=false`: **43 tests passed across 10 files**, exit 0. This supersedes the earlier 41-test frontend total.
+- `npm.cmd run build`: passed, initial 399.83 kB, estimated transfer 107.26 kB. Both `tsc --noEmit -p tsconfig.app.json` and `tsc --noEmit -p tsconfig.spec.json` passed. Prettier check passed for the two changed source files. `git diff --check` passed.
+- Previously verified database/Android results are historical evidence, not newly rerun checks: no unchanged backend or Android suite was repeated for this frontend-only correction.
+- Secure storage, real verified-parent/device/browser acceptance and CI blockers remain unchanged. No merge to main or Phase 3C work. The verified commit is recorded in Git history and the authorized pinned report-chat handoff.
