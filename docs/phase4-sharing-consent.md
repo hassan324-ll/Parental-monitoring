@@ -29,7 +29,7 @@ Ten feature tests cover default-off, separate parent/device identity, strict dis
 Next Phase4 slices:
 
 1. Android preference/deletion development implemented in Phase 4B; actual native/UI acceptance remains pending. No collection while collection_available:false. Future activation must require a new disclosure and explicit choice; sharing-v1 preferences cannot silently enable collection.
-2. Unrouted coarse-location foundation implemented and tested in [Phase4C](phase4c-location-ingestion-foundation.md), with current-version/grant/time fences and deduplication/stop/revoke races. Usage ingestion and fresh activation remain pending. No endpoint or collector can use sharing-v1 preferences as activation.
+2. Unrouted coarse-location foundation implemented and tested in [Phase4C](phase4c-location-ingestion-foundation.md), with current-version/grant/time fences and deduplication/stop/revoke races. Usage snapshot foundation is implemented in [Phase4D](phase4d-usage-ingestion-foundation.md); fresh activation remains pending. No endpoint or collector can use sharing-v1 preferences as activation.
 3. Opt-in native collection within Android background limits, minimized daily usage aggregates and coarse location, visible indicators and immediate stop. No private messages, keystrokes, hidden collection or permission bypass.
 4. Family-scoped parent views, operational retention scheduling and actual device/background/battery acceptance. Phase5 sharing remains separate and requires fresh MediaProjection approval per session.
 

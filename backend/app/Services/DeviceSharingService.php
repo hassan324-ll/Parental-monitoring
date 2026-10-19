@@ -62,6 +62,7 @@ final class DeviceSharingService
                     }
                     DB::table('app_usage_daily')->where('device_id', $d->id)->where('day', '<', now('UTC')->startOfDay()->subDays(6)->toDateString())->delete();
                     DB::table('location_updates')->where('device_id', $d->id)->where('recorded_at', '<=', now('UTC')->subHours(24))->delete();
+                    DB::table('usage_ingestion_snapshots')->where('device_id', $d->id)->where('day', '<', now('UTC')->startOfDay()->subDays(6)->toDateString())->delete();
                 });
             }
         });
@@ -84,5 +85,8 @@ final class DeviceSharingService
     private static function purgeFeature(int $id, string $feature): void
     {
         DB::table($feature === 'usage' ? 'app_usage_daily' : 'location_updates')->where('device_id', $id)->delete();
+        if ($feature === 'usage') {
+            DB::table('usage_ingestion_snapshots')->where('device_id', $id)->delete();
+        }
     }
 }
