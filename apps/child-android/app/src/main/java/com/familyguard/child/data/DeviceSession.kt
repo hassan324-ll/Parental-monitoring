@@ -35,10 +35,13 @@ class DeviceSession(
     private var pendingRevocation: String? = null
     private var localCleanupUnverified = false
     private val lock = Mutex()
+    private val sharingControls = SharingControls(credentials, api as? DeviceSharingApi)
+    val sharing = sharingControls.state
     private val mutableState = MutableStateFlow(State())
     val state = mutableState.asStateFlow()
 
     suspend fun restore() = lock.withLock {
+        sharingControls.invalidate()
         if (localCleanupUnverified) {
             mutableState.value = State(Phase.ERROR, message = "Local pairing cleanup could not be verified. Retry Remove local pairing recovery data after checking parent revocation.")
             return@withLock
@@ -72,6 +75,7 @@ class DeviceSession(
     }
 
     suspend fun disconnect() = lock.withLock {
+        sharingControls.invalidate()
         mutableState.value = State(Phase.DISCONNECTING, message = "Disconnecting device…")
         try {
             if (pendingRevocation == null) {
@@ -100,6 +104,7 @@ class DeviceSession(
     }
 
     suspend fun rotate() = lock.withLock {
+        sharingControls.invalidate()
         if (pendingRevocation != null || rotation == null) {
             mutableState.value = State(Phase.ERROR, message = "Resolve pairing recovery before rotating credentials.")
             return@withLock
@@ -119,6 +124,7 @@ class DeviceSession(
     }
     /** Local erasure is distinct from server disconnect; requires explicit parent-revocation acknowledgment. */
     suspend fun forgetLocalPairing(parentRevocationAcknowledged: Boolean = false) = lock.withLock {
+        sharingControls.invalidate()
         currentCoroutineContext().ensureActive()
         if (!parentRevocationAcknowledged || !state.value.canForgetLocalPairing) return@withLock
         withContext(NonCancellable) {
@@ -141,6 +147,7 @@ class DeviceSession(
 
     /** Called only after preview and an affirmative tap. Finish persistence/compensation if UI leaves. */
     suspend fun approve(code: String, deviceName: String, androidVersion: String): ApprovalResult = lock.withLock {
+        sharingControls.invalidate()
         currentCoroutineContext().ensureActive()
         withContext(NonCancellable) {
             if (pairing == null || !code.matches(Regex("[A-F0-9]{32}"))) {
@@ -206,6 +213,17 @@ class DeviceSession(
             }
         }
     }
+    suspend fun refreshSharing() = lock.withLock {
+        if (sharingControls.refresh(state.value.phase == Phase.CONNECTED)) {
+            mutableState.value = State(Phase.ERROR, message = "Device authorization must be verified again before sharing controls can be used.")
+        }
+    }
+    suspend fun decideSharing(feature: SharingFeature, enabled: Boolean, acknowledged: Boolean, revision: Long) = lock.withLock {
+        if (sharingControls.decide(state.value.phase == Phase.CONNECTED, feature, enabled, acknowledged, revision)) {
+            mutableState.value = State(Phase.ERROR, message = "Device authorization must be verified again before sharing controls can be used.")
+        }
+    }
+
     private suspend fun readCredential(): String? {
         return try {
             val token = credentials.read()

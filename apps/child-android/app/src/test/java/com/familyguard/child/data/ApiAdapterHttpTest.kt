@@ -59,6 +59,61 @@ class ApiAdapterHttpTest {
         throw AssertionError("Expected the synthetic response to be rejected.")
     }
 
+    private fun sharingResponse() = """{"sharing":{"usage":{"enabled":false,"version":0,"retention":"7 UTC calendar days including today"},"location":{"enabled":false,"version":0,"retention":"24 hours"}},"disclosure_version":"sharing-v1","collection_available":false}"""
+
+    @Test fun sharingReadUsesDeviceBearerAndIndependentDefaultOffPreferences() = runBlocking {
+        respond(body = sharingResponse())
+        val snapshot = companion.sharingStatus(token)
+        assertFalse(snapshot.usage.enabled); assertFalse(snapshot.location.enabled)
+        assertEquals(0L, snapshot.usage.version)
+        val request = request()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/companion/sharing", request.path)
+        assertEquals("Bearer $token", request.authorization)
+        assertEquals("", request.body)
+    }
+
+    @Test fun sharingDecisionUsesExplicitDisclosureAndDeletionUsesOnlyAuthenticatedFeature() = runBlocking {
+        respond(body = sharingResponse())
+        companion.saveSharingConsent(token, SharingFeature.USAGE)
+        val put = request()
+        assertEquals("PUT", put.method)
+        assertEquals("/api/v1/companion/sharing/usage", put.path)
+        assertEquals("Bearer $token", put.authorization)
+        val body = JSONObject(put.body)
+        assertEquals(2, body.length())
+        assertEquals(true, body.get("enabled"))
+        assertEquals("sharing-v1", body.getString("disclosure_version"))
+        assertFalse(put.body.contains(token))
+        respond(body = sharingResponse())
+        companion.stopSharing(token, SharingFeature.LOCATION)
+        val delete = request()
+        assertEquals("DELETE", delete.method)
+        assertEquals("/api/v1/companion/sharing/location", delete.path)
+        assertEquals("Bearer $token", delete.authorization)
+        assertEquals("", delete.body)
+    }
+
+    @Test fun sharingRejectsUnsupportedCapabilitiesDisclosureAndMalformedTypedState() = runBlocking {
+        val changes: List<(JSONObject) -> Unit> = listOf(
+            { it.put("collection_available", true); Unit },
+            { it.put("collection_available", "false"); Unit },
+            { it.put("disclosure_version", "unknown"); Unit },
+            { it.getJSONObject("sharing").getJSONObject("usage").put("enabled", "false"); Unit },
+            { it.getJSONObject("sharing").getJSONObject("usage").put("version", -1); Unit },
+            { it.getJSONObject("sharing").getJSONObject("usage").put("version", "1"); Unit },
+            { it.getJSONObject("sharing").getJSONObject("usage").put("version", 1.5); Unit },
+            { it.getJSONObject("sharing").remove("location"); Unit },
+            { it.getJSONObject("sharing").getJSONObject("location").put("retention", ""); Unit },
+            { it.getJSONObject("sharing").getJSONObject("location").put("retention", 24); Unit }
+        )
+        for (change in changes) {
+            val json = JSONObject(sharingResponse()); change(json)
+            respond(body = json.toString())
+            rejected { companion.sharingStatus(token) }
+            request()
+        }
+    }
     @Test fun stagedApprovalPostsOnlyHashAndExplicitConsentWithNoBearer() = runBlocking {
         respond(201, """{"device":{"id":"synthetic-id","name":"Synthetic phone","paired":true}}""")
         pairing.approveStaged(code, "Synthetic phone", "26", hash)

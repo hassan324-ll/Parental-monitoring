@@ -19,6 +19,8 @@ import androidx.navigation.compose.*
 import com.familyguard.child.ui.CompanionViewModel
 import com.familyguard.child.ui.DeviceSessionViewModel
 import com.familyguard.child.data.DeviceSession
+import com.familyguard.child.data.SharingFeature
+import com.familyguard.child.ui.SharingSettings
 import com.familyguard.child.ui.PairingViewModel
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -32,11 +34,12 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val status by model.status.collectAsStateWithLifecycle()
  val deviceSession:DeviceSessionViewModel=viewModel()
  val sessionState by deviceSession.state.collectAsStateWithLifecycle()
+ val sharingState by deviceSession.sharing.collectAsStateWithLifecycle()
  var confirmDisconnect by remember { mutableStateOf(false) }
  var confirmRotation by remember { mutableStateOf(false) }
  var confirmLocalReset by remember { mutableStateOf(false) }
  var parentRevocationAcknowledged by remember { mutableStateOf(false) }
- val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING || sessionState.phase==DeviceSession.Phase.PAIRING || sessionState.phase==DeviceSession.Phase.ROTATING
+ val sessionBusy=sharingState.busy || sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING || sessionState.phase==DeviceSession.Phase.PAIRING || sessionState.phase==DeviceSession.Phase.ROTATING
  val context=LocalContext.current
  Surface(Modifier.fillMaxSize()){Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState())){
  Text("FamilyGuard Companion",style=MaterialTheme.typography.headlineMedium)
@@ -49,8 +52,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Text(when(index){
  2->"Future sharing requires your knowledge and permission. No private messages or keystrokes are collected."
  3->"No monitoring permissions are requested in this version. Review or revoke system permissions below."
- 5->"Activity sharing is not implemented. Nothing is being collected."
- 6->"Location sharing is not implemented. GPS permission has not been requested."
+ 5->"Activity preference and deletion controls. Collection is unavailable."
+ 6->"Location preference and deletion controls. No GPS permission is requested."
  7->"No capture is active. Every future session requires fresh Android approval and a visible notification."
  8->"You control sharing. Revocation must stop collection and end active sessions. Device status and disconnect are available in Connected Device Home. Pair only after reviewing the invitation and choosing Approve pairing on this device."
  9->"Emulator API: "+BuildConfig.API_BASE_URL+". Release API must be configured before distribution."
@@ -69,6 +72,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Button(onClick=pairing::cancel,enabled=!pairingState.approving && (pairingState.busy || pairingState.code.isNotBlank() || pairingState.preview!=null)){Text("Cancel")}
  if(pairingState.message.isNotBlank()) Text(pairingState.message)
  }
+ if(index==5||index==6) SharingSettings(if(index==5) SharingFeature.USAGE else SharingFeature.LOCATION, sharingState, sessionState.phase==DeviceSession.Phase.CONNECTED, sessionBusy, deviceSession::refreshSharing, deviceSession::decideSharing)
  if(index==3)Button(onClick={context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Review Android permissions")}
  if(index==4||index==9){
  Text(sessionState.message)

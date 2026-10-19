@@ -18,7 +18,7 @@ interface CompanionSessionApi {
 }
 
 /** Uses device credentials only. Never log bearer headers or forward them through redirects. */
-class CompanionSessionRepository internal constructor(private val openConnection: (URL) -> HttpURLConnection) : CompanionSessionApi, CompanionRotationApi {
+class CompanionSessionRepository internal constructor(private val openConnection: (URL) -> HttpURLConnection) : CompanionSessionApi, CompanionRotationApi, DeviceSharingApi {
     constructor() : this({ url -> url.openConnection() as HttpURLConnection })
 
     override suspend fun status(credential: String): CompanionDevice = withContext(Dispatchers.IO) {
@@ -41,6 +41,33 @@ class CompanionSessionRepository internal constructor(private val openConnection
             JSONObject().put("next_credential_hash", nextCredentialHash))
         check(response.getBoolean("rotated")) { "Rotation is unconfirmed." }
     }
+    override suspend fun sharingStatus(credential: String): SharingSnapshot = withContext(Dispatchers.IO) {
+        parseSharing(request("GET", "companion/sharing", credential))
+    }
+    override suspend fun saveSharingConsent(credential: String, feature: SharingFeature): SharingSnapshot = withContext(Dispatchers.IO) {
+        parseSharing(request("PUT", "companion/sharing/${feature.wire}", credential,
+            JSONObject().put("enabled", true).put("disclosure_version", "sharing-v1")))
+    }
+    override suspend fun stopSharing(credential: String, feature: SharingFeature): SharingSnapshot = withContext(Dispatchers.IO) {
+        parseSharing(request("DELETE", "companion/sharing/${feature.wire}", credential))
+    }
+    private fun parseSharing(json: JSONObject): SharingSnapshot {
+        check(json.get("collection_available") == false && json.get("disclosure_version") == "sharing-v1") {
+            "Unsupported sharing capability or disclosure."
+        }
+        fun consent(feature: String): SharingConsent {
+            val item = json.getJSONObject("sharing").getJSONObject(feature)
+            val enabled = item.get("enabled")
+            val version = item.get("version")
+            check(enabled is Boolean && (version is Int || version is Long)) { "Invalid sharing status." }
+            val number = (version as Number).toLong()
+            val retention = item.get("retention")
+            check(number >= 0 && retention is String && retention.isNotBlank() && retention.length <= 120) { "Invalid sharing status." }
+            return SharingConsent(enabled as Boolean, number, retention as String)
+        }
+        return SharingSnapshot(consent("usage"), consent("location"))
+    }
+
     private fun request(method: String, path: String, credential: String, body: JSONObject? = null): JSONObject {
         require(credential.matches(Regex("[a-f0-9]{64}"))) { "Invalid device credential." }
         require(BuildConfig.API_BASE_URL.startsWith("https://") ||
@@ -56,7 +83,7 @@ class CompanionSessionRepository internal constructor(private val openConnection
             connection.readTimeout = 10000
             connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty("Authorization", "Bearer $credential")
-            if (method == "POST") {
+            if (method == "POST" || method == "PUT") {
                 connection.doOutput = true
                 val payload = body?.toString()?.toByteArray(Charsets.UTF_8) ?: ByteArray(0)
                 if (body != null) connection.setRequestProperty("Content-Type", "application/json")

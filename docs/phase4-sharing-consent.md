@@ -10,7 +10,7 @@ Device bearer authentication is required for all calls. A parent Firebase identi
 - PUT `/api/v1/companion/sharing/{usage|location}`: strict JSON boolean `enabled`. Enabling additionally requires `disclosure_version: sharing-v1`. Client target IDs and version overrides rejected. This records a device assertion of consent, not proof of a physical tap or Android system permission.
 - DELETE `/api/v1/companion/sharing/{usage|location}`: stop-and-delete for the calling device. Submitted target IDs cannot select another device. PUT enabled:false has the same stop/purge behavior.
 
-Every decision increments its server version, including repeated decisions, so future ingestion can fence out queued batches from earlier grants. Features are independent. New responses always include `collection_available:false`; an enabled consent flag must not be displayed as active collection. Android/Angular controls and collectors remain unimplemented in this slice.
+Every decision increments its server version, including repeated decisions, so future ingestion can fence out queued batches from earlier grants. Features are independent. New responses always include `collection_available:false`; an enabled consent flag must not be displayed as active collection. Android preference/deletion controls are now implemented in [Phase 4B](phase4b-android-sharing-controls.md); Angular controls and all collectors remain unimplemented.
 
 ## Locking and privacy
 
@@ -28,7 +28,7 @@ Ten feature tests cover default-off, separate parent/device identity, strict dis
 
 Next Phase4 slices:
 
-1. Visible Android disclosure and independent opt-in/Stop-and-delete controls, truthful status and offline/revocation behavior. No collection while collection_available:false; no permission request before explicit user choice.
+1. Android preference/deletion development implemented in Phase 4B; actual native/UI acceptance remains pending. No collection while collection_available:false. Future activation must require a new disclosure and explicit choice; sharing-v1 preferences cannot silently enable collection.
 2. Minimized validated ingestion with bounded batches, deduplication, consent-version and collection-time checks, no client ownership IDs, rejection after revocation, retention and deletion races. This must precede enabling any collector.
 3. Opt-in native collection within Android background limits, minimized daily usage aggregates and coarse location, visible indicators and immediate stop. No private messages, keystrokes, hidden collection or permission bypass.
 4. Family-scoped parent views, operational retention scheduling and actual device/background/battery acceptance. Phase5 sharing remains separate and requires fresh MediaProjection approval per session.

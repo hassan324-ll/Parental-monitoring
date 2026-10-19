@@ -19,6 +19,7 @@ class DeviceSessionViewModel(application: Application) : AndroidViewModel(applic
     )
     private var operation: Job? = null
     val state = session.state
+    val sharing = session.sharing
 
     init { refresh() }
 
@@ -38,6 +39,15 @@ class DeviceSessionViewModel(application: Application) : AndroidViewModel(applic
     fun forgetLocalPairing(parentRevocationAcknowledged: Boolean) {
         if (operation?.isActive == true) return
         operation = viewModelScope.launch { session.forgetLocalPairing(parentRevocationAcknowledged) }
+    }
+
+    fun refreshSharing() {
+        if (operation?.isActive == true) return
+        operation = viewModelScope.launch { session.refreshSharing() }
+    }
+    fun decideSharing(feature: com.familyguard.child.data.SharingFeature, enabled: Boolean, acknowledged: Boolean, revision: Long) {
+        if (operation?.isActive == true) return
+        operation = viewModelScope.launch { session.decideSharing(feature, enabled, acknowledged, revision) }
     }
 
     fun disconnect() {

@@ -22,7 +22,7 @@ try {
   [Environment]::SetEnvironmentVariable($name,$testEnvironment[$name],'Process')
  }
  & $php $fixtureScript prepare $fixturePath
- Check-Exit
+ if ($LASTEXITCODE -ne 0) { throw "Synthetic fixture preparation failed (exit $LASTEXITCODE); HTTP tests were not started." }
  $fixtureReady = $true
  $listener = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
  $listener.Start()
@@ -41,11 +41,11 @@ try {
  }
  if(-not $ready) { throw 'Isolated Laravel server did not become healthy.' }
  Push-Location (Join-Path $projectRoot 'apps/child-android')
- try { & ./gradlew.bat testDebugUnitTest --rerun --tests com.familyguard.child.data.LaravelHttpAcceptanceTest; Check-Exit } finally { Pop-Location }
+ try { & ./gradlew.bat testDebugUnitTest --rerun --tests com.familyguard.child.data.LaravelHttpAcceptanceTest; if ($LASTEXITCODE -ne 0) { throw "Laravel HTTP acceptance failed (exit $LASTEXITCODE)." } } finally { Pop-Location }
 } finally {
  if($serverProcess -and -not $serverProcess.HasExited) { Stop-Process -Id $serverProcess.Id }
  try {
-  if($fixtureReady) { & $php $fixtureScript cleanup $fixturePath; Check-Exit }
+  if($fixtureReady) { & $php $fixtureScript cleanup $fixturePath; if ($LASTEXITCODE -ne 0) { throw "Synthetic fixture cleanup failed (exit $LASTEXITCODE); inspect local fixtures." } }
  } finally {
   foreach($name in $previous.Keys) { [Environment]::SetEnvironmentVariable($name,$previous[$name],'Process') }
  }
