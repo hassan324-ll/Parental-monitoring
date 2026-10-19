@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device credential rotation success",
+  "type": "object",
+  "required": ["rotated", "device"],
+  "additionalProperties": false,
+  "properties": {
+    "rotated": { "const": true },
+    "device": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" }
+      }
+    }
+  }
+}

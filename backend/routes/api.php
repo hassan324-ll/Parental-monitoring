@@ -24,6 +24,7 @@ Route::prefix('v1/device-pairings')->middleware('throttle:10,1')->group(function
 Route::prefix('v1/companion')->middleware([RequirePairedDevice::class, 'throttle:30,1'])->group(function (): void {
     Route::get('/me', [CompanionController::class, 'status']);
     Route::post('/disconnect', [CompanionController::class, 'disconnect']);
+    Route::post('/rotate', [CompanionController::class, 'rotate']);
 });
 
 Route::prefix('v1')->middleware([ThrottleParentAuthentication::class.':60,1', 'auth:firebase-parent'])->group(function (): void {

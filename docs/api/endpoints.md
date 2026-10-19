@@ -22,6 +22,15 @@ Certificate cache lifetime, signing-key rotation and an IP throttle before authe
 - The caller does not control owner_id or child-family membership.
 - Family creation also creates the owner membership atomically.
 
+## Implemented Phase 3 device pairing
+
+- GET /api/v1/me — verified parent profile.
+- POST /api/v1/families/{family}/children/{child}/pairings — parent-scoped, one-use expiring invitation.
+- POST /api/v1/device-pairings/preview and /approve — visible companion invitation review and affirmative approval; no parent Firebase token substitutes for device consent.
+- GET /api/v1/families/{family}/devices; DELETE /api/v1/families/{family}/devices/{publicId} — authorized parent list/revoke.
+- GET /api/v1/companion/me; POST /api/v1/companion/disconnect — independently revocable device bearer credential.
+- POST /api/v1/companion/rotate — current device credential plus `next_credential_hash`; locked re-authentication, atomic rotation and retained-history reuse rejection. Old credential becomes invalid on commit. No replacement secret is returned. See [rotation and recovery contract](../phase3c-credential-rotation.md). Android staging/recovery integration is still pending.
+
 ## Planned, not implemented
 
-/api/v1/me, pairing, device credentials, permission records, usage ingestion, GPS locations, screen-share sessions, alerts and audit logs. Companion calls must use independently revocable device credentials.
+Permission records API, usage ingestion, GPS locations, screen-share sessions, alerts and audit logs. Future companion calls must recheck device revocation and visible opt-in consent. Existing schema tables do not imply collection is implemented.

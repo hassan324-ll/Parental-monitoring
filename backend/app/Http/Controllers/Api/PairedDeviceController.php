@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Family;
+use App\Services\DeviceCredentialService;
 use App\Support\FamilyAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,14 +24,12 @@ final class PairedDeviceController extends Controller
         ])->header('Cache-Control', 'no-store');
     }
 
-    public function revoke(Request $request, Family $family, string $device): JsonResponse
+    public function revoke(Request $request, Family $family, string $device, DeviceCredentialService $credentials): JsonResponse
     {
         $family = FamilyAccess::findVisible($request->user(), $family);
         abort_unless(FamilyAccess::canManage($request->user(), $family), 403);
         $paired = $family->devices()->where('public_id', $device)->firstOrFail();
-        $paired->credential_hash = null;
-        $paired->revoked_at = now();
-        $paired->save();
+        $credentials->revoke($paired->id);
 
         return response()->json(['message' => 'Device access revoked.']);
     }

@@ -90,6 +90,9 @@ final class DevicePairingController extends Controller
             $device->credential_hash = hash('sha256', $credential);
             $device->last_seen_at = now();
             $device->save();
+            DB::table('device_credential_history')->insert([
+                'device_id' => $device->id, 'credential_hash' => $device->credential_hash, 'created_at' => now(),
+            ]);
 
             DB::table('device_pairings')->where('id', $pairing->id)->update([
                 'consumed_at' => now(),

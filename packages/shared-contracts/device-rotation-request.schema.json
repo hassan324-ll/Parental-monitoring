@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device credential rotation request",
+  "type": "object",
+  "required": ["next_credential_hash"],
+  "properties": {
+    "next_credential_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "minLength": 64,
+      "maxLength": 64,
+      "description": "SHA-256 of the lowercase 64-character replacement bearer token encoded as UTF-8. Generate and durably stage that token on the device before sending this hash."
+    }
+  }
+}
