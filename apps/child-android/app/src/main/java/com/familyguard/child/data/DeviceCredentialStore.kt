@@ -22,7 +22,7 @@ interface DeviceCredentialStore {
 }
 
 /** An atomic encrypted journal keeps both generations through a rotation handoff. */
-class KeystoreDeviceCredentialStore(context: Context) : RotatingDeviceCredentialStore {
+class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: String = ALIAS) : RotatingDeviceCredentialStore {
     private val file = AtomicFile(File(context.applicationContext.noBackupFilesDir, "device-credential.v1"))
 
     override suspend fun prepare(): Unit = withContext(Dispatchers.IO) {
@@ -87,7 +87,7 @@ class KeystoreDeviceCredentialStore(context: Context) : RotatingDeviceCredential
                 "Could not clear device credential."
             }
             val store = KeyStore.getInstance(PROVIDER).apply { load(null) }
-            if (store.containsAlias(ALIAS)) store.deleteEntry(ALIAS)
+            if (store.containsAlias(keyAlias)) store.deleteEntry(keyAlias)
         }
     }
 
@@ -133,12 +133,12 @@ class KeystoreDeviceCredentialStore(context: Context) : RotatingDeviceCredential
 
     private fun key(create: Boolean): SecretKey {
         val store = KeyStore.getInstance(PROVIDER).apply { load(null) }
-        val existing = store.getKey(ALIAS, null)
+        val existing = store.getKey(keyAlias, null)
         if (existing is SecretKey) return existing
         check(create) { "Device credential key unavailable." }
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, PROVIDER)
         generator.init(
-            KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+            KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
                 .setKeySize(256)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)

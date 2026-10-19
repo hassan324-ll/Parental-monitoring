@@ -47,3 +47,6 @@ Hash-only rotation and retained-history reuse prevention are now implemented wit
 ## Android rotation handoff milestone
 
 Versioned encrypted current/pending journals, legacy reads, staged-hash requests and recovery-aware restore/disconnect are implemented. Final Android suite: 57 passing JVM tests. These simulate restart/storage/network failures and do not establish real platform durability. See the rotation contract for conservative all-401 recovery limits and native acceptance prerequisites. SDK emulator executable is currently absent; emulator/instrumentation preparation is the next bounded task, not Phase 4 collection.
+## Native test harness and prepared emulator
+
+Eight isolated Keystore/AtomicFile instrumentation tests now compile, alongside 57 passing JVM tests. Emulator 37.2.12 and an API 26 AOSP x86_64 image are installed; FamilyGuard_API26_Test is prepared. Connected tests failed because no device is connected (zero executed). Windows acceleration remains disabled after a cancelled administrator prompt; no OS feature or reboot was performed. See [native acceptance setup](android-native-acceptance.md). This supersedes the earlier missing-emulator observation, without closing native acceptance or Phase 4 prerequisites.
