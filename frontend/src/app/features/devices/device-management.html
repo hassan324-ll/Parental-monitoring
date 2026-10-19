@@ -87,6 +87,23 @@
   @for (device of devices(); track device.public_id) {
     <article>
       <strong>{{ device.name }}</strong>
+      <button
+        type="button"
+        [disabled]="busy() || loading()"
+        (click)="summaryDevice.set(device.public_id)"
+      >
+        View saved summary
+      </button>
+      @if (summaryDevice() === device.public_id) {
+        @if (selectedFamilyId(); as familyId) {
+          <button type="button" (click)="summaryDevice.set(null)">Hide saved summary</button>
+          <app-sharing-summary
+            [familyId]="familyId"
+            [deviceId]="device.public_id"
+            [revoked]="!!device.revoked_at"
+          />
+        }
+      }
       <span> — {{ device.revoked_at ? 'Revoked' : 'Paired' }}</span>
       <button type="button" [disabled]="busy() || !!device.revoked_at" (click)="revoke(device)">
         Revoke access

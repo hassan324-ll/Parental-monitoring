@@ -1,0 +1,52 @@
+<section aria-label="Saved sharing summary">
+  <h3>Saved sharing summary</h3>
+  <p>
+    Collection is unavailable in this version. Saved preferences do not start collection. This view
+    cannot enable sharing.
+  </p>
+  <p role="status" aria-live="polite">{{ message() }}</p>
+  <button type="button" [disabled]="loading() || revoked()" (click)="refresh()">
+    Refresh saved data
+  </button>
+  @if (summary(); as data) {
+    @if (data.revoked) {
+      <p>Device revoked. No saved data is available.</p>
+    } @else {
+      <h4>Saved app usage</h4>
+      <p>Retention: {{ data.usage.retention }}.</p>
+      @if (!data.usage.consent_current) {
+        <p>
+          Usage sharing is not enabled for collection. Preference-only choices do not authorize it.
+        </p>
+      } @else {
+        @for (day of data.usage.days; track day.day) {
+          <h5>{{ day.day }} — {{ day.total_seconds }} foreground seconds</h5>
+          <p>Recorded through {{ day.recorded_until }} (UTC).</p>
+          <ul>
+            @for (app of day.apps; track app.package_name) {
+              <li>{{ app.package_name }}: {{ app.duration_seconds }} seconds</li>
+            }
+          </ul>
+        } @empty {
+          <p>No retained app usage is available.</p>
+        }
+      }
+      <h4>Last saved coarse location</h4>
+      <p>Retention: {{ data.location.retention }}. This is not a live location.</p>
+      @if (!data.location.consent_current) {
+        <p>Location sharing is not enabled for collection.</p>
+      } @else if (data.location.latest; as point) {
+        <p>
+          Latitude {{ point.latitude }}, longitude {{ point.longitude }}. Reported accuracy
+          {{ point.accuracy_meters }} metres.
+        </p>
+        <p>
+          Recorded {{ point.recorded_at }} (UTC). Coordinates are coarse and are not independently
+          verified.
+        </p>
+      } @else {
+        <p>No retained location is available.</p>
+      }
+    }
+  }
+</section>

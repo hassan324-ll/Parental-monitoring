@@ -5,6 +5,7 @@ import {
   User,
   createUserWithEmailAndPassword,
   getAuth,
+  onAuthStateChanged,
   reload,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -21,6 +22,7 @@ export const FIREBASE_CLIENT = new InjectionToken('FamilyGuard Firebase client',
     initializeApp,
     getApps,
     getAuth,
+    onAuthStateChanged,
     reload,
     signOut,
     signInWithEmailAndPassword,
@@ -91,6 +93,17 @@ export class FirebaseAuthService {
     await this.sdk.sendPasswordResetEmail(this.requireAuth(), email.trim());
   }
 
+  observeIdentity(listener: (uid: string | null) => void): () => void {
+    if (!this.auth) {
+      listener(null);
+      return () => {};
+    }
+    return this.sdk.onAuthStateChanged(
+      this.auth,
+      (user) => listener(user?.emailVerified ? user.uid : null),
+      () => listener(null),
+    );
+  }
   async logout(): Promise<void> {
     if (this.auth) await this.sdk.signOut(this.auth);
   }

@@ -1,3 +1,4 @@
+import { SharingSummary } from './sharing-summary';
 import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -11,6 +12,7 @@ import {
 @Component({
   selector: 'app-device-management',
   standalone: true,
+  imports: [SharingSummary],
   templateUrl: './device-management.html',
 })
 export class DeviceManagement implements OnInit, OnDestroy {
@@ -19,6 +21,7 @@ export class DeviceManagement implements OnInit, OnDestroy {
   private requestId = 0;
   private readonly clock = signal(Date.now());
   private timer?: ReturnType<typeof setInterval>;
+  readonly summaryDevice = signal<string | null>(null);
   readonly familyPage = signal(1);
   readonly familyLastPage = signal(1);
   readonly childPage = signal(1);
@@ -43,11 +46,13 @@ export class DeviceManagement implements OnInit, OnDestroy {
     void this.loadFamilies();
   }
   ngOnDestroy(): void {
+    this.summaryDevice.set(null);
     clearInterval(this.timer);
     this.requestId++;
   }
 
   async loadFamilies(page = 1): Promise<void> {
+    this.summaryDevice.set(null);
     const request = ++this.requestId;
     this.loading.set(true);
     this.error.set('');
@@ -72,6 +77,7 @@ export class DeviceManagement implements OnInit, OnDestroy {
   }
   async selectFamily(id: number, childPage = 1, devicePage = 1): Promise<void> {
     if (!this.families().some((f) => f.id === id)) return;
+    this.summaryDevice.set(null);
     const request = ++this.requestId;
     this.selectedFamilyId.set(id);
     this.invitation.set(null);
@@ -134,6 +140,7 @@ export class DeviceManagement implements OnInit, OnDestroy {
     this.busy.set(true);
     this.error.set('');
     try {
+      this.summaryDevice.set(null);
       await firstValueFrom(this.pairingApi.revokeDevice(familyId, device.public_id));
       if (request === this.requestId) {
         const refresh = this.selectFamily(familyId, this.childPage(), this.devicePage());

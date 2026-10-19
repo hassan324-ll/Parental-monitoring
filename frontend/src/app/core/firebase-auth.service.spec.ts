@@ -5,6 +5,7 @@ const sdk = {
   initializeApp: vi.fn(),
   getApps: vi.fn(),
   getAuth: vi.fn(),
+  onAuthStateChanged: vi.fn(),
   reload: vi.fn(),
   signOut: vi.fn(),
   signInWithEmailAndPassword: vi.fn(),
@@ -41,6 +42,23 @@ describe('Firebase client fail-closed lifecycle', () => {
     environment.firebaseConfig = original;
   });
   const service = () => TestBed.inject(FirebaseAuthService);
+  it('observes verified identity changes without exposing tokens and releases the observer', () => {
+    const release = vi.fn();
+    sdk.onAuthStateChanged.mockReturnValue(release);
+    const listener = vi.fn();
+    const unsubscribe = service().observeIdentity(listener);
+    const callback = sdk.onAuthStateChanged.mock.calls[0][1];
+    callback({ uid: 'synthetic-parent', emailVerified: true });
+    expect(listener).toHaveBeenLastCalledWith('synthetic-parent');
+    callback({ uid: 'unverified', emailVerified: false });
+    expect(listener).toHaveBeenLastCalledWith(null);
+    callback(null);
+    expect(listener).toHaveBeenLastCalledWith(null);
+    sdk.onAuthStateChanged.mock.calls[0][2](new Error('synthetic offline'));
+    expect(listener).toHaveBeenLastCalledWith(null);
+    unsubscribe();
+    expect(release).toHaveBeenCalledOnce();
+  });
   it('disables auth when configuration is absent', async () => {
     environment.firebaseConfig = null;
     const s = service();

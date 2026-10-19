@@ -49,6 +49,20 @@ describe('Connected Devices contracts and state', () => {
     fixture.detectChanges();
     return fixture;
   }
+  it('hides an open summary before loading another family or family page', async () => {
+    const f = await setup();
+    f.componentInstance.summaryDevice.set('synthetic-selected');
+    await f.componentInstance.selectFamily(2);
+    expect(f.componentInstance.summaryDevice()).toBeNull();
+    f.componentInstance.summaryDevice.set('synthetic-selected');
+    const response = new Subject<ReturnType<typeof page>>();
+    families.listFamilies.mockReturnValueOnce(response);
+    const pending = f.componentInstance.loadFamilies(2);
+    expect(f.componentInstance.summaryDevice()).toBeNull();
+    response.error(new Error('synthetic offline'));
+    await pending;
+    expect(f.componentInstance.summaryDevice()).toBeNull();
+  });
   it('keeps loading active when an older family page finishes during a newer selection', async () => {
     const f = await setup();
     const olderChildren = new Subject<ReturnType<typeof page>>();
