@@ -41,7 +41,7 @@ try {
  }
  if(-not $ready) { throw 'Isolated Laravel server did not become healthy.' }
  Push-Location (Join-Path $projectRoot 'apps/child-android')
- try { & ./gradlew.bat testDebugUnitTest --tests com.familyguard.child.data.LaravelHttpAcceptanceTest; Check-Exit } finally { Pop-Location }
+ try { & ./gradlew.bat testDebugUnitTest --rerun --tests com.familyguard.child.data.LaravelHttpAcceptanceTest; Check-Exit } finally { Pop-Location }
 } finally {
  if($serverProcess -and -not $serverProcess.HasExited) { Stop-Process -Id $serverProcess.Id }
  try {

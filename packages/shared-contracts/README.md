@@ -2,3 +2,5 @@ HTTP contracts are transport-only. No credentials, platform code or business rul
 Device rotation request/response schemas describe the hash-only backend contract. They contain no actual credentials. See docs/phase3c-credential-rotation.md for required client staging and lost-response recovery; client rotation is not yet enabled.
 
 Pairing approval schemas: device-pairing-approval-request.schema.json and device-pairing-approval-response.schema.json. Optional staged-hash mode omits device_token; legacy mode returns it. See ../../docs/phase3c-staged-approval.md for cross-request semantics and unimplemented Android durable approval staging.
+
+Device-owned sharing controls: device-sharing-decision.schema.json and device-sharing-status.schema.json. See ../../docs/phase4-sharing-consent.md for default-off, version, deletion and retention semantics. collection_available remains false; no ingestion contract is enabled.

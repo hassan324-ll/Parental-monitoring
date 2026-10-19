@@ -30,3 +30,5 @@ The first live run found an unauthenticated parent GET without `Accept: applicat
 ## Outstanding acceptance
 
 Actual Android networking/JSONObject/Keystore/process restart/UI, verified Firebase parent/browser/inbox and successful CI evidence remain open. This run uses no real Firebase credentials and requests no monitoring permissions. Nine instrumented native tests are still unexecuted pending Windows acceleration. No Phase4 collection is enabled by this harness.
+
+The runner now passes task-level --rerun so backend/fixture changes always cause actual live test execution; Gradle UP-TO-DATE is not accepted as a fresh HTTP verification result.

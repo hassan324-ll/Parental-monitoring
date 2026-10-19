@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device sharing consent status (collection unavailable in this milestone)",
+  "type": "object",
+  "required": ["sharing", "disclosure_version", "collection_available"],
+  "properties": {
+    "sharing": {
+      "type": "object", "required": ["usage", "location"],
+      "properties": {"usage": {"$ref": "#/$defs/feature"}, "location": {"$ref": "#/$defs/feature"}},
+      "additionalProperties": false
+    },
+    "disclosure_version": {"const": "sharing-v1"},
+    "collection_available": {"const": false}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "feature": {
+      "type": "object", "required": ["enabled", "version", "retention"],
+      "properties": {"enabled": {"type": "boolean"}, "version": {"type": "integer", "minimum": 0}, "retention": {"type": "string"}},
+      "additionalProperties": false
+    }
+  }
+}

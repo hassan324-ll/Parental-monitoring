@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device-owned sharing consent decision",
+  "type": "object",
+  "required": ["enabled"],
+  "properties": {
+    "enabled": {"type": "boolean"},
+    "disclosure_version": {"type": ["string", "null"], "enum": ["sharing-v1", null]}
+  },
+  "if": {"properties": {"enabled": {"const": true}}},
+  "then": {"required": ["disclosure_version"], "properties": {"disclosure_version": {"const": "sharing-v1"}}},
+  "additionalProperties": false
+}

@@ -58,6 +58,12 @@ final class DeviceCredentialService
         });
     }
 
+    /** Runs device-owned work under the same lock as rotation and revocation. */
+    public function forCurrentDevice(int $deviceId, string $presentedHash, \Closure $work): mixed
+    {
+        return DB::transaction(fn () => $work($this->current($deviceId, $presentedHash)));
+    }
+
     private function current(int $deviceId, string $presentedHash): Device
     {
         $device = Device::whereKey($deviceId)->lockForUpdate()->first();
@@ -69,6 +75,7 @@ final class DeviceCredentialService
 
     private function revokeLocked(Device $device): void
     {
+        DeviceSharingService::revokeForDevice($device->id);
         $device->credential_hash = null;
         $device->revoked_at = now();
         $device->save();

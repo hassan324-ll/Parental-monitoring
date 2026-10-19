@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ChildController;
 use App\Http\Controllers\Api\CompanionController;
 use App\Http\Controllers\Api\DevicePairingController;
+use App\Http\Controllers\Api\DeviceSharingController;
 use App\Http\Controllers\Api\FamilyController;
 use App\Http\Controllers\Api\PairedDeviceController;
 use App\Http\Controllers\Api\ParentProfileController;
@@ -23,6 +24,9 @@ Route::prefix('v1/device-pairings')->middleware('throttle:10,1')->group(function
 // by the parent or by the device itself. No monitoring APIs are enabled here.
 Route::prefix('v1/companion')->middleware([RequirePairedDevice::class, 'throttle:30,1'])->group(function (): void {
     Route::get('/me', [CompanionController::class, 'status']);
+    Route::get('/sharing', [DeviceSharingController::class, 'status']);
+    Route::put('/sharing/{feature}', [DeviceSharingController::class, 'update'])->whereIn('feature', ['usage', 'location']);
+    Route::delete('/sharing/{feature}', [DeviceSharingController::class, 'remove'])->whereIn('feature', ['usage', 'location']);
     Route::post('/disconnect', [CompanionController::class, 'disconnect']);
     Route::post('/rotate', [CompanionController::class, 'rotate']);
 });
