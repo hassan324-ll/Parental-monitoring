@@ -29,6 +29,7 @@ class DeviceRotation(
     suspend fun rotate(): DeviceSession.State = lock.withLock {
         try {
             var journal = store.readJournal() ?: return@withLock DeviceSession.State(message = "This device is not paired.")
+            check(!journal.approvalPending) { "Resolve approval before rotation." }
             if (journal.pending == null) {
                 try {
                     api.status(journal.current)

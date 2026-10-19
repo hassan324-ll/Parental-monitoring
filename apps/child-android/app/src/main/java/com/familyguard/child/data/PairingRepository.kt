@@ -16,7 +16,7 @@ interface PairingApprovalApi {
 }
 
 /** Network-only pairing API. Never log invitation codes or device credentials. */
-class PairingRepository : PairingPreviewApi, PairingApprovalApi {
+class PairingRepository : PairingPreviewApi, PairingApprovalApi, StagedPairingApprovalApi {
     data class Preview(val familyName: String, val childName: String)
     class Approval(val deviceToken: String, val deviceName: String) { override fun toString() = "Approval(credential=redacted)" }
 
@@ -31,6 +31,17 @@ class PairingRepository : PairingPreviewApi, PairingApprovalApi {
                 .put("device_name", deviceName).put("android_version", androidVersion)
             val result = request("device-pairings/approve", body)
             Approval(result.getString("device_token"), result.getJSONObject("device").getString("name"))
+        }
+
+    override suspend fun approveStaged(code: String, deviceName: String, androidVersion: String, credentialHash: String): Unit =
+        withContext(Dispatchers.IO) {
+            require(credentialHash.matches(Regex("[a-f0-9]{64}"))) { "Invalid staged credential hash." }
+            val body = JSONObject().put("code", code).put("approved", true)
+                .put("device_name", deviceName).put("android_version", androidVersion).put("credential_hash", credentialHash)
+            val result = request("device-pairings/approve", body)
+            check(!result.has("device_token") && result.getJSONObject("device").getBoolean("paired")) {
+                "Unexpected staged approval response."
+            }
         }
 
     private fun request(path: String, body: JSONObject): JSONObject {

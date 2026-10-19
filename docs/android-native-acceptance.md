@@ -1,6 +1,6 @@
 # Android native acceptance setup
 
-Status, 19 October 2026: emulator and system image installed; AVD prepared but not booted. Eight instrumented tests compile; none have executed. All 73 JVM tests pass after local recovery and bounded response transport milestones. Windows acceleration is the current blocker. This setup does not close Phase 3 acceptance.
+Status, 19 October 2026: emulator and system image installed; AVD prepared but not booted. Nine instrumented tests compile; none have executed. All 85 JVM tests pass after the staged approval handoff milestone. Windows acceleration is the current blocker. This setup does not close Phase 3 acceptance.
 
 ## Windows prerequisite
 
@@ -36,7 +36,7 @@ Set-Location apps/child-android
 ./gradlew.bat connectedDebugAndroidTest
 ```
 
-Expected evidence is eight executed instrumentation tests with zero failures, not merely a built test APK. Reports: `app/build/reports/androidTests/connected/debug/index.html` (check actual generated output after a successful run). Do not wipe an AVD or clear app data that contains a real pairing without explicit revocation/recovery handling.
+Expected evidence is nine executed instrumentation tests with zero failures, not merely a built test APK. Reports: `app/build/reports/androidTests/connected/debug/index.html` (check actual generated output after a successful run). Do not wipe an AVD or clear app data that contains a real pairing without explicit revocation/recovery handling.
 
 ## Build and launch
 
@@ -61,6 +61,6 @@ Debug API base URL is `http://10.0.2.2:8000/api/v1/`. Live pairing requires a de
 
 ## What these tests establish
 
-Eight tests target actual Android Keystore and AtomicFile behavior using unique test aliases and directories: encrypted persistence, reconstructed current/pending journal and promotion, legacy upgrade, missing key, tampering, stale writes, clear, aborted atomic write. The default app credential is preserved. No plaintext test secret is used as a real credential.
+Nine tests target actual Android Keystore and AtomicFile behavior using unique test aliases and directories: encrypted persistence, reconstructed current/pending journal and promotion, legacy upgrade, missing key, tampering, stale writes, clear, aborted atomic write. The new pending-approval case also verifies reconstruction, overwrite/rotation denial and explicit confirmation. The default app credential is preserved. No plaintext test secret is used as a real credential.
 
 Even when these pass, actual process death/restart, backup/transfer exclusion, live HTTP rotation/revocation, visible consent and compensation UI, verified-parent/browser/inbox and CI acceptance remain separate work. Current both-401 rotation recovery retains the journal automatically; an explicitly acknowledged/confirmed recovery-only local erase is now implemented with JVM coverage. It does not revoke server access, and actual native/UI acceptance remains pending. Do not start collection based only on build success.

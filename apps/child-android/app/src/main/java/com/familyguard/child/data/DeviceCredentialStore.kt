@@ -22,7 +22,7 @@ interface DeviceCredentialStore {
 }
 
 /** An atomic encrypted journal keeps both generations through a rotation handoff. */
-class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: String = ALIAS) : RotatingDeviceCredentialStore {
+class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: String = ALIAS) : ApprovingDeviceCredentialStore {
     private val file = AtomicFile(File(context.applicationContext.noBackupFilesDir, "device-credential.v1"))
 
     override suspend fun prepare(): Unit = withContext(Dispatchers.IO) {
@@ -47,7 +47,7 @@ class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: Stri
     override suspend fun save(token: String): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
             val existing = readLocked()
-            check(existing == null || (existing.current == token && existing.pending == null)) {
+            check(existing == null || (existing.current == token && existing.pending == null && !existing.approvalPending)) {
                 "Cannot overwrite an existing credential journal."
             }
             writeLocked(CredentialJournal(token))
@@ -63,7 +63,7 @@ class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: Stri
     override suspend fun stage(current: String, pending: String): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
             val existing = readLocked()
-            check(existing?.current == current && (existing.pending == null || existing.pending == pending)) {
+            check(existing?.current == current && !existing.approvalPending && (existing.pending == null || existing.pending == pending)) {
                 "Credential journal changed before staging."
             }
             writeLocked(CredentialJournal(current, pending))
@@ -73,10 +73,25 @@ class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: Stri
     override suspend fun promote(current: String, pending: String): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
             val existing = readLocked()
-            check(existing?.current == current && existing.pending == pending) {
+            check(existing?.current == current && !existing.approvalPending && existing.pending == pending) {
                 "Credential journal changed before promotion."
             }
             writeLocked(CredentialJournal(pending))
+        }
+    }
+
+    override suspend fun stageApproval(credential: String): Unit = withContext(Dispatchers.IO) {
+        lock.withLock {
+            check(readLocked() == null) { "Cannot replace existing pairing recovery data." }
+            writeLocked(CredentialJournal(credential, approvalPending = true))
+        }
+    }
+
+    override suspend fun confirmApproval(credential: String): Unit = withContext(Dispatchers.IO) {
+        lock.withLock {
+            val existing = readLocked()
+            check(existing?.current == credential && existing.approvalPending) { "Approval journal changed." }
+            writeLocked(CredentialJournal(credential))
         }
     }
 
@@ -115,7 +130,7 @@ class KeystoreDeviceCredentialStore(context: Context, private val keyAlias: Stri
         val encrypted = CredentialCipher.encrypt(CredentialJournalCodec.encode(journal), key(create = true))
         writeAtomic(file, encrypted)
         val restored = readLocked()
-        check(restored?.current == journal.current && restored.pending == journal.pending) {
+        check(restored?.current == journal.current && restored.pending == journal.pending && restored.approvalPending == journal.approvalPending) {
             "Credential journal read-back failed."
         }
     }

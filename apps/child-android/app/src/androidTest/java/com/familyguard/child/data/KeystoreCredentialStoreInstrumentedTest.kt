@@ -133,6 +133,19 @@ class KeystoreCredentialStoreInstrumentedTest {
         assertEquals(next, restored?.pending)
     }
 
+    @Test fun pendingApprovalSurvivesReconstructionAndCannotBeOverwrittenOrRotated() = runBlocking {
+        store.stageApproval(old)
+        val reconstructed = KeystoreDeviceCredentialStore(context, alias)
+        assertTrue(reconstructed.readJournal()!!.approvalPending)
+        expectFailure { reconstructed.save(old) }
+        expectFailure { reconstructed.stage(old, next) }
+        expectFailure { reconstructed.promote(old, next) }
+        expectFailure { reconstructed.stageApproval(next) }
+        reconstructed.confirmApproval(old)
+        assertFalse(KeystoreDeviceCredentialStore(context, alias).readJournal()!!.approvalPending)
+        assertEquals(old, reconstructed.read())
+    }
+
     private suspend fun expectFailure(action: suspend () -> Unit) {
         var rejected = false
         try { action() } catch (failure: IllegalStateException) { rejected = true }

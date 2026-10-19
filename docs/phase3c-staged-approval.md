@@ -1,6 +1,6 @@
 # Staged approval credential contract
 
-This is a backward-compatible backend prerequisite for recoverable Android approval. Current Android still uses legacy server-generated approval tokens. It does not yet stage an approval credential; do not claim crash-safe pairing or change that client until the durable handoff is implemented/tested.
+Backend staged approval and the Android encrypted pending-approval handoff are implemented on the development branch with automated protocol coverage. Production Android storage/repository now select staged mode; legacy APIs remain for older clients and injected non-staging tests. Actual Android Keystore/process-death/UI/live HTTP acceptance remains pending, so crash-safe pairing is not release-verified.
 
 ## HTTP behavior
 
@@ -12,7 +12,7 @@ Null, empty, padded, uppercase, malformed or non-string hashes fail validation. 
 
 Successful approval locks and consumes the invitation once. An expired, absent or consumed invitation returns the same 404, including repeated identical staged requests. No approval replay/idempotency exception was introduced. Global credential history prevents another invitation, family or rotation from reusing a current or historical hash. Reuse returns a generic 422 and rolls back the provisional device and invitation consumption. Unique history reservation arbitrates concurrent claims. Existing parent authorization and device revocation remain unchanged; staging grants no monitoring permission.
 
-## Future Android handoff requirements
+## Android handoff requirements
 
 1. Explicit invitation preview and affirmative consent remain mandatory. Prepare storage; reject an existing session; generate/encrypt/read back the approval credential before sending its hash.
 2. Preserve the same staged credential across lost response/process restart. Do not blindly auto-approve or reuse a consumed invitation.
@@ -20,7 +20,7 @@ Successful approval locks and consumes the invitation once. An expired, absent o
 4. Cancel before sending must never approve and must safely remove only unsent staging. After sending, reconcile or revoke; local erase does not revoke server access.
 5. Distinguish pending approval from ordinary paired/rotation state durably, so a startup 401 cannot silently erase an unresolved transaction. Test missing key, failed stage/read-back, cancellation, lost response, process reconstruction, server revoke and cleanup before activation.
 
-These client steps are requirements, not implemented features in this milestone. Even client protocol unit tests will not replace actual Keystore/process/UI/live API acceptance.
+These client steps are implemented with injected protocol tests and a compiled native storage regression. JVM restart cases reconstruct coordinators and decode the journal; they do not kill/restart an Android process. Native Keystore/process/UI/live API acceptance remains required. Staging is marked potentially sent before HTTP: process death between staging and sending therefore conservatively retains recovery data rather than automatically approving or erasing it.
 
 ## Deployment boundary
 

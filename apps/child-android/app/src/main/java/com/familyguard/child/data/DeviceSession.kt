@@ -15,7 +15,8 @@ class DeviceSession(
     private val credentials: DeviceCredentialStore,
     private val api: CompanionSessionApi,
     private val pairing: PairingApprovalApi? = null,
-    generateRotationCredential: () -> String = CredentialTokens::generate
+    generateRotationCredential: () -> String = CredentialTokens::generate,
+    generateApprovalCredential: () -> String = CredentialTokens::generate
 ) {
     enum class Phase { UNPAIRED, CHECKING, CONNECTED, OFFLINE, DISCONNECTING, PAIRING, ROTATING, ERROR }
     data class State(
@@ -29,6 +30,8 @@ class DeviceSession(
     enum class ApprovalResult { VERIFIED, SAVED_UNVERIFIED, FAILED, RECOVERY_REQUIRED }
     private val rotation = if (credentials is RotatingDeviceCredentialStore && api is CompanionRotationApi)
         DeviceRotation(credentials, api, api, generateRotationCredential) else null
+    private val approvalHandoff = if (credentials is ApprovingDeviceCredentialStore && pairing is StagedPairingApprovalApi)
+        ApprovalHandoff(credentials, api, pairing, generateApprovalCredential) else null
     private var pendingRevocation: String? = null
     private var localCleanupUnverified = false
     private val lock = Mutex()
@@ -46,7 +49,7 @@ class DeviceSession(
         }
         mutableState.value = State(Phase.CHECKING, message = "Checking device authorization…")
         try {
-            val recovered = rotation?.recover()
+            val recovered = approvalHandoff?.recover() ?: rotation?.recover()
             if (recovered != null) {
                 mutableState.value = recovered
                 return@withLock
@@ -72,7 +75,7 @@ class DeviceSession(
         mutableState.value = State(Phase.DISCONNECTING, message = "Disconnecting device…")
         try {
             if (pendingRevocation == null) {
-                val recovered = rotation?.disconnectPending()
+                val recovered = approvalHandoff?.disconnectPending() ?: rotation?.disconnectPending()
                 if (recovered != null) {
                     mutableState.value = recovered
                     return@withLock
@@ -99,6 +102,11 @@ class DeviceSession(
     suspend fun rotate() = lock.withLock {
         if (pendingRevocation != null || rotation == null) {
             mutableState.value = State(Phase.ERROR, message = "Resolve pairing recovery before rotating credentials.")
+            return@withLock
+        }
+        val approvalRecovery = approvalHandoff?.recover()
+        if (approvalRecovery != null) {
+            mutableState.value = approvalRecovery
             return@withLock
         }
         mutableState.value = State(Phase.ROTATING, message = "Rotating the device credential securely…")
@@ -144,6 +152,20 @@ class DeviceSession(
             } catch (failure: Exception) {
                 mutableState.value = State(Phase.ERROR, message = "Cannot start pairing. Disconnect any existing session and check secure storage first.")
                 return@withContext ApprovalResult.FAILED
+            }
+            if (approvalHandoff != null) {
+                mutableState.value = State(Phase.PAIRING, message = "Saving approval recovery data before sending consent…")
+                try {
+                    mutableState.value = approvalHandoff.approve(code, deviceName, androidVersion)
+                } catch (cancelled: CancellationException) {
+                    mutableState.value = State(Phase.ERROR, message = "Approval interrupted. Retained staging must be verified or revoked; approval will not be resent.")
+                    throw cancelled
+                }
+                return@withContext when (state.value.phase) {
+                    Phase.CONNECTED -> ApprovalResult.VERIFIED
+                    Phase.OFFLINE -> ApprovalResult.SAVED_UNVERIFIED
+                    else -> ApprovalResult.RECOVERY_REQUIRED
+                }
             }
             mutableState.value = State(Phase.PAIRING, message = "Approving pairing and saving this device securely…")
             val approval = try {
