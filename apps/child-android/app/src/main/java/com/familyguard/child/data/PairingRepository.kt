@@ -16,7 +16,9 @@ interface PairingApprovalApi {
 }
 
 /** Network-only pairing API. Never log invitation codes or device credentials. */
-class PairingRepository : PairingPreviewApi, PairingApprovalApi, StagedPairingApprovalApi {
+class PairingRepository internal constructor(private val openConnection: (URL) -> HttpURLConnection) : PairingPreviewApi, PairingApprovalApi, StagedPairingApprovalApi {
+    constructor() : this({ url -> url.openConnection() as HttpURLConnection })
+
     data class Preview(val familyName: String, val childName: String)
     class Approval(val deviceToken: String, val deviceName: String) { override fun toString() = "Approval(credential=redacted)" }
 
@@ -49,7 +51,7 @@ class PairingRepository : PairingPreviewApi, PairingApprovalApi, StagedPairingAp
             (BuildConfig.DEBUG && BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))) {
             "A secure API endpoint is required."
         }
-        val connection = (URL(BuildConfig.API_BASE_URL + path).openConnection() as HttpURLConnection)
+        val connection = openConnection(URL(BuildConfig.API_BASE_URL + path))
         try {
             connection.instanceFollowRedirects = false
             connection.useCaches = false
@@ -59,7 +61,9 @@ class PairingRepository : PairingPreviewApi, PairingApprovalApi, StagedPairingAp
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
-            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val payload = body.toString().toByteArray(Charsets.UTF_8)
+            connection.setFixedLengthStreamingMode(payload.size)
+            connection.outputStream.use { it.write(payload) }
             if (connection.responseCode !in 200..299) {
                 throw IllegalStateException("Pairing request rejected (HTTP ${connection.responseCode}).")
             }

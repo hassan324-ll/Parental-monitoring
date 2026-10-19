@@ -18,7 +18,9 @@ interface CompanionSessionApi {
 }
 
 /** Uses device credentials only. Never log bearer headers or forward them through redirects. */
-class CompanionSessionRepository : CompanionSessionApi, CompanionRotationApi {
+class CompanionSessionRepository internal constructor(private val openConnection: (URL) -> HttpURLConnection) : CompanionSessionApi, CompanionRotationApi {
+    constructor() : this({ url -> url.openConnection() as HttpURLConnection })
+
     override suspend fun status(credential: String): CompanionDevice = withContext(Dispatchers.IO) {
         val result = request("GET", "companion/me", credential)
         val device = result.getJSONObject("device")
@@ -45,7 +47,7 @@ class CompanionSessionRepository : CompanionSessionApi, CompanionRotationApi {
             (BuildConfig.DEBUG && BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))) {
             "A secure API endpoint is required."
         }
-        val connection = URL(BuildConfig.API_BASE_URL + path).openConnection() as HttpURLConnection
+        val connection = openConnection(URL(BuildConfig.API_BASE_URL + path))
         try {
             connection.instanceFollowRedirects = false
             connection.useCaches = false

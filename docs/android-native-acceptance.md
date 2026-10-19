@@ -1,6 +1,6 @@
 # Android native acceptance setup
 
-Status, 19 October 2026: emulator and system image installed; AVD prepared but not booted. Nine instrumented tests compile; none have executed. All 85 JVM tests pass after the staged approval handoff milestone. Windows acceleration is the current blocker. This setup does not close Phase 3 acceptance.
+Status, 19 October 2026: emulator and system image installed; AVD prepared but not booted. Nine instrumented tests compile; none have executed. All 97 JVM tests pass after staged approval and loopback HTTP adapter acceptance. Windows acceleration is the current blocker. This setup does not close Phase 3 acceptance.
 
 ## Windows prerequisite
 

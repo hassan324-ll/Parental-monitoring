@@ -25,3 +25,11 @@ These client steps are implemented with injected protocol tests and a compiled n
 ## Deployment boundary
 
 No new migration is introduced; this service uses the existing credential history schema. That earlier migration remains applied only to isolated test databases, not development/production. No automatic rollout is performed. SQLite uses `:memory:`; PostgreSQL uses only `familyguard_test`. Actual Android/browser/inbox and CI acceptance remain open. Phase 4 collection remains gated by Phase 3 acceptance.
+
+## JVM HTTP adapter acceptance
+
+Twelve loopback HTTP tests now exercise the actual pairing and companion adapter methods using JVM HttpURLConnection and a synthetic MockWebServer: hash-only staged consent payload, preview Unicode, legacy approval, device bearer status, rotation/disconnect methods and bodies, typed401 versus server errors, redirects without bearer forwarding, oversized/invalid UTF-8, malformed/missing JSON fields, staged-vs-legacy response mismatch, validation before network, and dropped approval response.
+
+The dropped-response regression initially reproduced a second automatic approval POST from buffered JVM networking (11/12 tests passed). Pairing now uses fixed-length streaming, matching companion POSTs; all twelve pass and the server observes one approval request after receiving it then dropping the connection. No global networking/security option was changed, and no application-level approval retry was added.
+
+Each server binds only 127.0.0.1 on an ephemeral port. An internal connection factory maps physical test connections to that server while production endpoint validation still executes; the public default constructor still uses the configured URL directly. Test-only JSON-java 20250517 and MockWebServer4.12.0 (matching pinned OkHttp) provide host JSON/socket execution. JSON dependency version source: https://github.com/stleary/JSON-java/releases/tag/20250517 . Android platform JSON/networking, actual TLS/proxy behavior and real Laravel/Firebase/UI acceptance remain separate gates; these tests do not prove Android retry behavior or native lifecycle durability.
