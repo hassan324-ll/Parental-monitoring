@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
         $middleware->trimStrings(except: ['next_credential_hash', 'credential_hash']);
         $middleware->prependToPriorityList(
             AuthenticatesRequests::class,
