@@ -18,9 +18,13 @@ while (! file_exists(getenv('PAIRING_GATE'))) {
     }
     usleep(10000);
 }
-$request = Request::create('/api/v1/device-pairings/approve', 'POST', [
+$payload = [
     'code' => getenv('PAIRING_CODE'), 'approved' => true, 'device_name' => 'Concurrent synthetic phone',
-], [], [], ['HTTP_ACCEPT' => 'application/json']);
+];
+if (getenv('PAIRING_CREDENTIAL_HASH')) {
+    $payload['credential_hash'] = getenv('PAIRING_CREDENTIAL_HASH');
+}
+$request = Request::create('/api/v1/device-pairings/approve', 'POST', $payload, [], [], ['HTTP_ACCEPT' => 'application/json']);
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 $response = $kernel->handle($request);
 echo $response->getStatusCode();

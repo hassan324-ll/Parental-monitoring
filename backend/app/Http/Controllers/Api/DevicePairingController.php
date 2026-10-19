@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Device;
+use App\Http\Requests\ApproveDevicePairingRequest;
 use App\Models\Family;
+use App\Services\DevicePairingService;
 use App\Support\FamilyAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 final class DevicePairingController extends Controller
 {
@@ -61,49 +61,9 @@ final class DevicePairingController extends Controller
         ])->header('Cache-Control', 'no-store');
     }
 
-    public function approve(Request $request): JsonResponse
+    public function approve(ApproveDevicePairingRequest $request, DevicePairingService $service): JsonResponse
     {
-        $data = $request->validate([
-            'code' => ['required', 'string', 'size:32', 'regex:/^[a-fA-F0-9]{32}$/'],
-            'approved' => ['required', 'accepted'],
-            'device_name' => ['required', 'string', 'min:2', 'max:100'],
-            'android_version' => ['nullable', 'string', 'max:40'],
-        ]);
-
-        $result = DB::transaction(function () use ($data): ?array {
-            $pairing = DB::table('device_pairings')
-                ->where('token_hash', hash('sha256', strtoupper($data['code'])))
-                ->lockForUpdate()->first();
-
-            if (! $pairing || $pairing->consumed_at !== null ||
-                now()->greaterThanOrEqualTo($pairing->expires_at) || ! $pairing->child_id) {
-                return null;
-            }
-            // The database foreign keys enforce family/child membership.
-            $credential = bin2hex(random_bytes(32));
-            $device = new Device;
-            $device->family_id = $pairing->family_id;
-            $device->child_id = $pairing->child_id;
-            $device->public_id = (string) Str::uuid();
-            $device->name = trim($data['device_name']);
-            $device->android_version = $data['android_version'] ?? null;
-            $device->credential_hash = hash('sha256', $credential);
-            $device->last_seen_at = now();
-            $device->save();
-            DB::table('device_credential_history')->insert([
-                'device_id' => $device->id, 'credential_hash' => $device->credential_hash, 'created_at' => now(),
-            ]);
-
-            DB::table('device_pairings')->where('id', $pairing->id)->update([
-                'consumed_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return ['device' => [
-                'id' => $device->public_id, 'name' => $device->name,
-                'paired' => true,
-            ], 'device_token' => $credential];
-        });
+        $result = $service->approve($request->validated());
 
         if (! $result) {
             return response()->json(['message' => 'Pairing invitation unavailable or expired.'], 404);

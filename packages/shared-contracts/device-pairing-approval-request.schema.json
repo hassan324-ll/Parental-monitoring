@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device pairing approval request",
+  "type": "object",
+  "required": ["code", "approved", "device_name"],
+  "properties": {
+    "code": {"type": "string", "pattern": "^[a-fA-F0-9]{32}$", "minLength": 32, "maxLength": 32},
+    "approved": {"const": true},
+    "device_name": {"type": "string", "minLength": 2, "maxLength": 100},
+    "android_version": {"type": ["string", "null"], "maxLength": 40},
+    "credential_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$", "minLength": 64, "maxLength": 64}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device pairing approval response",
+  "type": "object",
+  "required": ["device"],
+  "properties": {
+    "device": {
+      "type": "object",
+      "required": ["id", "name", "paired"],
+      "properties": {
+        "id": {"type": "string", "format": "uuid"},
+        "name": {"type": "string"},
+        "paired": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "device_token": {"type": "string", "pattern": "^[a-f0-9]{64}$", "minLength": 64, "maxLength": 64}
+  },
+  "additionalProperties": false,
+  "$comment": "Legacy mode returns device_token; staged mode MUST omit it. Cross-request mode correspondence is verified by backend tests and documented in the approval contract."
+}
