@@ -59,6 +59,10 @@ describe('saved summary identity and request lifecycle', () => {
       ],
     });
   });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
   function setup() {
     const fixture = TestBed.createComponent(SharingSummary);
     fixture.componentRef.setInput('familyId', 1);
@@ -131,6 +135,86 @@ describe('saved summary identity and request lifecycle', () => {
     f.destroy();
     expect(release).toHaveBeenCalledOnce();
     expect(responses[0].observed).toBe(false);
+  });
+  it('expires a saved snapshot after one minute without polling or accepting a late response', () => {
+    vi.useFakeTimers();
+    const f = setup();
+    responses[0].next(data());
+    vi.advanceTimersByTime(59999);
+    expect(f.componentInstance.summary()).not.toBeNull();
+    vi.advanceTimersByTime(1);
+    expect(f.componentInstance.summary()).toBeNull();
+    responses[0].next(data());
+    expect(f.componentInstance.summary()).toBeNull();
+    expect(f.componentInstance.message()).toContain('expired');
+    expect(api.read).toHaveBeenCalledTimes(1);
+    f.componentInstance.refresh();
+    f.detectChanges();
+    responses[1].next(data());
+    expect(f.componentInstance.summary()).not.toBeNull();
+    f.destroy();
+  });
+  it('hides synchronously on tab hide, cancels in-flight reads and requires refresh on return', () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const f = setup();
+    responses[0].next(data());
+    visibility.mockReturnValue('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(f.componentInstance.summary()).toBeNull();
+    responses[0].next(data());
+    expect(f.componentInstance.summary()).toBeNull();
+    f.detectChanges();
+    expect(responses[0].observed).toBe(false);
+    visibility.mockReturnValue('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+    f.detectChanges();
+    expect(api.read).toHaveBeenCalledTimes(1);
+    f.componentInstance.refresh();
+    f.detectChanges();
+    expect(api.read).toHaveBeenCalledTimes(2);
+    f.destroy();
+  });
+  it('stops on offline and does not silently fetch when online returns', () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const f = setup();
+    responses[0].next(data());
+    online.mockReturnValue(false);
+    window.dispatchEvent(new Event('offline'));
+    expect(f.componentInstance.summary()).toBeNull();
+    f.detectChanges();
+    f.componentInstance.refresh();
+    f.detectChanges();
+    expect(api.read).toHaveBeenCalledTimes(1);
+    online.mockReturnValue(true);
+    window.dispatchEvent(new Event('online'));
+    f.detectChanges();
+    expect(api.read).toHaveBeenCalledTimes(1);
+    f.componentInstance.refresh();
+    f.detectChanges();
+    expect(api.read).toHaveBeenCalledTimes(2);
+    f.destroy();
+  });
+  it('does not request data when first opened in a hidden tab', () => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    const f = setup();
+    expect(api.read).not.toHaveBeenCalled();
+    f.componentInstance.refresh();
+    expect(api.read).not.toHaveBeenCalled();
+    f.destroy();
+  });
+  it('releases privacy event listeners and expiry timer on destruction', () => {
+    vi.useFakeTimers();
+    const f = setup();
+    responses[0].next(data());
+    const documentRemove = vi.spyOn(document, 'removeEventListener');
+    const windowRemove = vi.spyOn(window, 'removeEventListener');
+    f.destroy();
+    const message = f.componentInstance.message();
+    vi.advanceTimersByTime(60001);
+    window.dispatchEvent(new Event('offline'));
+    expect(f.componentInstance.message()).toBe(message);
+    expect(documentRemove).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    expect(windowRemove).toHaveBeenCalledWith('offline', expect.any(Function));
   });
   it('does not request saved data without a verified identity', () => {
     const f = TestBed.createComponent(SharingSummary);

@@ -1,4 +1,5 @@
 import { Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FirebaseAuthService } from '../../core/firebase-auth.service';
 import {
@@ -15,6 +16,11 @@ export class SharingSummary {
   readonly familyId = input.required<number>();
   readonly deviceId = input.required<string>();
   readonly revoked = input(false);
+  private readonly document = inject(DOCUMENT);
+  private readonly active = signal(
+    this.document.visibilityState !== 'hidden' &&
+      this.document.defaultView?.navigator.onLine !== false,
+  );
   private readonly api = inject(SharingSummaryApiService);
   private readonly auth = inject(FirebaseAuthService);
   private epoch = 0;
@@ -24,7 +30,33 @@ export class SharingSummary {
   readonly loading = signal(false);
   readonly message = signal('Verify your parent session to read saved data.');
 
+  private expiry?: ReturnType<typeof setTimeout>;
+  private clearSnapshot(message: string): void {
+    this.epoch++;
+    clearTimeout(this.expiry);
+    this.summary.set(null);
+    this.loading.set(false);
+    this.message.set(message);
+  }
+
   constructor() {
+    const suspend = () => {
+      this.active.set(false);
+      this.clearSnapshot(
+        'Saved data hidden. Return online to this tab and refresh to verify again.',
+      );
+    };
+    const visibility = () => {
+      if (this.document.visibilityState === 'hidden') suspend();
+    };
+    this.document.addEventListener('visibilitychange', visibility);
+    this.document.defaultView?.addEventListener('offline', suspend);
+    inject(DestroyRef).onDestroy(() => {
+      this.epoch++;
+      clearTimeout(this.expiry);
+      this.document.removeEventListener('visibilitychange', visibility);
+      this.document.defaultView?.removeEventListener('offline', suspend);
+    });
     const unsubscribe = this.auth.observeIdentity((uid) => {
       this.epoch++;
       this.summary.set(null);
@@ -40,6 +72,13 @@ export class SharingSummary {
       const revoked = this.revoked();
       const uid = this.identity();
       this.refreshVersion();
+      if (!this.active()) {
+        this.clearSnapshot(
+          'Saved data hidden. Return online to this tab and refresh to verify again.',
+        );
+        return;
+      }
+      clearTimeout(this.expiry);
       this.epoch++;
       this.summary.set(null);
       this.loading.set(false);
@@ -59,11 +98,19 @@ export class SharingSummary {
         uid === this.identity() &&
         family === this.familyId() &&
         device === this.deviceId() &&
-        !this.revoked();
+        !this.revoked() &&
+        this.active();
       const subscription = this.api.read(family, device).subscribe({
         next: (value) => {
           if (!current()) return;
           this.summary.set(value);
+          clearTimeout(this.expiry);
+          this.expiry = setTimeout(() => {
+            if (current())
+              this.clearSnapshot(
+                'Saved snapshot expired after one minute. Refresh to verify again.',
+              );
+          }, 60000);
           this.loading.set(false);
           this.message.set('Saved data received. This is not a live collection status.');
         },
@@ -85,6 +132,15 @@ export class SharingSummary {
     });
   }
   refresh(): void {
+    if (
+      this.document.visibilityState === 'hidden' ||
+      this.document.defaultView?.navigator.onLine === false
+    ) {
+      this.clearSnapshot('Saved data is unavailable while this tab is hidden or offline.');
+      return;
+    }
+    this.active.set(true);
+    clearTimeout(this.expiry);
     this.epoch++;
     this.summary.set(null);
     this.refreshVersion.update((value) => value + 1);
