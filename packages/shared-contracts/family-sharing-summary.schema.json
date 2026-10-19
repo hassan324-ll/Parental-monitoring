@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Family-authorized saved sharing summary",
+  "type": "object", "additionalProperties": false,
+  "required": ["device_id", "revoked", "collection_available", "usage", "location"],
+  "properties": {
+    "device_id": {"type": "string", "format": "uuid"},
+    "revoked": {"type": "boolean"},
+    "collection_available": {"const": false},
+    "usage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["consent_current", "retention", "days"],
+      "properties": {
+        "consent_current": {"type": "boolean"},
+        "retention": {"const": "7 UTC calendar days including today"},
+        "days": {"type": "array", "maxItems": 7, "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["day", "recorded_until", "total_seconds", "apps"],
+          "properties": {
+            "day": {"type": "string", "format": "date"},
+            "recorded_until": {"type": "string", "format": "date-time"},
+            "total_seconds": {"type": "integer", "minimum": 0, "maximum": 86400},
+            "apps": {"type": "array", "maxItems": 100, "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["package_name", "duration_seconds"],
+              "properties": {
+                "package_name": {"type": "string", "maxLength": 150},
+                "duration_seconds": {"type": "integer", "minimum": 1, "maximum": 86400}
+              }
+            }}
+          }
+        }}
+      }
+    },
+    "location": {
+      "type": "object", "additionalProperties": false,
+      "required": ["consent_current", "retention", "latest"],
+      "properties": {
+        "consent_current": {"type": "boolean"},
+        "retention": {"const": "24 hours"},
+        "latest": {"anyOf": [{"type": "null"}, {
+          "type": "object", "additionalProperties": false,
+          "required": ["latitude", "longitude", "accuracy_meters", "recorded_at"],
+          "properties": {
+            "latitude": {"type": "number", "minimum": -90, "maximum": 90},
+            "longitude": {"type": "number", "minimum": -180, "maximum": 180},
+            "accuracy_meters": {"type": "integer", "minimum": 1000, "maximum": 100000},
+            "recorded_at": {"type": "string", "format": "date-time"}
+          }
+        }]}
+      }
+    }
+  }
+}

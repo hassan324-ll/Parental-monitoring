@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CompanionController;
 use App\Http\Controllers\Api\DevicePairingController;
 use App\Http\Controllers\Api\DeviceSharingController;
 use App\Http\Controllers\Api\FamilyController;
+use App\Http\Controllers\Api\FamilySharingSummaryController;
 use App\Http\Controllers\Api\PairedDeviceController;
 use App\Http\Controllers\Api\ParentProfileController;
 use App\Http\Middleware\RequirePairedDevice;
@@ -38,6 +39,7 @@ Route::prefix('v1')->middleware([ThrottleParentAuthentication::class.':60,1', 'a
     Route::get('/families/{family}/children', [ChildController::class, 'index']);
     Route::post('/families/{family}/children', [ChildController::class, 'store']);
     Route::get('/families/{family}/devices', [PairedDeviceController::class, 'index']);
+    Route::get('/families/{family}/devices/{device}/sharing-summary', [FamilySharingSummaryController::class, 'show'])->whereUuid('device');
     Route::post('/families/{family}/children/{child}/pairings', [DevicePairingController::class, 'create']);
     Route::delete('/families/{family}/devices/{device}', [PairedDeviceController::class, 'revoke']);
 });
