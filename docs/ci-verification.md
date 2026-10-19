@@ -25,3 +25,7 @@ Pre-change commit17a1599 run39221493925 completedfailure within seconds. Its fou
 [Observed run](https://github.com/hassan324-ll/Parental-monitoring/actions/runs/39221493925).
 
 The expanded Linux job commands, third-party setup actions, container service, report upload and cache behavior require an actual hosted run. Syntax/local command verification does not establish that those integrations executed successfully. Check the pushed workflow's run before closing CI acceptance. Native Android, verified-parent browser/inbox and release acceptance remain open; this does not enable Phase4 data collection.
+
+## Expanded workflow publication result — 19 October 2026
+
+Pushed workflow commit eb3bf585d251bb3d5da45f95ea38966ad8343b9b triggered run39222254744, which completedfailure. Android job117960072669, PostgreSQL job117960072753 and foundation job117960073168 all report failure with null steps/logs. No test command execution is demonstrated, and no successful hosted coverage is claimed. Do not infer a code failure or a specific account/billing cause without GitHub's error details. Inspect https://github.com/hassan324-ll/Parental-monitoring/actions/runs/39222254744 for the actionable platform message. Do not repeatedly rerun unchanged jobs while this condition remains.
