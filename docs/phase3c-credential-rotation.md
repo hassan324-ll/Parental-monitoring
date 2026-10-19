@@ -10,17 +10,26 @@ A unique hash-only history table prevents current and historical credential reus
 
 Invalid request shapes receive 422; unauthenticated, stale or revoked bearer credentials receive 401; reused hashes receive a generic 422 without identifying another device/family. Nonempty device/family/child target identifiers are prohibited. Laravel trimming is disabled for the hash so malformed whitespace is rejected. Existing companion rate limits apply.
 
-## Required Android handoff — not implemented in this backend slice
+## Android handoff protocol
 
 1. Generate a new credential with a platform CSPRNG. Atomically encrypt and read back a journal containing both current and pending credentials before sending the rotation request. Never overwrite the only usable credential first.
 2. Send the pending credential hash with the current bearer token. Keep the journal through any timeout, cancellation, process restart or uncertain response. Do not generate another replacement while one is pending.
 3. Verify authorization with the pending credential before atomically promoting it. On a lost response, probe pending/current state and retry the SAME staged hash if needed. Retrying the old bearer after commit can return 401; successful pending authentication confirms the committed replacement.
 4. Both probes failing does not justify claiming rotation/disconnect success or erasing recovery state. Concurrent revocation, an in-flight commit, offline service and rejected credentials require distinct handling; fail closed, retain encrypted recovery material and show retry/parent-revocation guidance.
 5. Disconnect during pending rotation must resolve/revoke the active generation, using both staged candidates when necessary. Never discard an unresolved session solely because its old token returns 401.
-6. Add restart, persistence-failure, lost-response, double-submit, revocation and cancellation JVM tests, followed by actual Android Keystore/device acceptance. No Android rotation call or automatic schedule is enabled by this backend commit.
+6. Add restart, persistence-failure, lost-response, double-submit, revocation and cancellation JVM tests, followed by actual Android Keystore/device acceptance. Android now has an explicit confirmed rotation/recovery action; no automatic rotation schedule is enabled. Actual platform acceptance remains pending.
 
 ## Verification and deployment boundary
 
 The isolated SQLite/PostgreSQL suites exercise replay, reuse, malformed input, cross-family/role authorization, stale service authorization, migration backfill/rollback, history privacy/cascade and actual two-process PostgreSQL races. The parent-revocation race calls the same service as the policy-protected HTTP controller; separate HTTP tests verify that policy boundary. SQLite skips process-lock race cases.
 
 The new migration has run only on isolated test databases. Development/production databases were not migrated or reset. Apply reviewed migrations as part of a separately controlled environment rollout before using the new backend branch. Actual device, verified parent/inbox/browser and successful CI evidence remain pending; Phase 4 is not released by this change.
+## Android implementation — 19 October 2026
+
+- The Keystore-encrypted credential file now contains a versioned current/pending journal. Valid legacy single-token ciphertext remains readable. Journal values and diagnostic output are redacted; no secret is placed in observable UI state.
+- Rotation verifies the existing session, prepares storage, generates a SecureRandom 256-bit replacement, atomically stages both generations and checks read-back before posting its SHA-256 hash. The pending credential is promoted only after successful backend status validation and promotion read-back.
+- Startup performs pending/current status probes without silently issuing a rotation. An uncommitted pending candidate is retained for explicit retry with the same hash. A committed replacement can be recovered after response loss. Cancellation after staging preserves recovery state; no exactly-once HTTP or force-stop/file-system guarantee is claimed by JVM tests.
+- Disconnect attempts pending, current, then pending again if necessary, covering a rotation commit between attempts. Only a confirmed successful server disconnect triggers journal removal. All-401/ambiguous or offline outcomes retain encrypted recovery state and give parent-revocation guidance.
+- Deliberately conservative recovery limitation: when both candidates are rejected, there is no in-app action in this slice to erase an unconfirmed rotation journal. Parent-side revocation and an explicit local recovery/reset procedure still need native acceptance and UX completion. Do not call the app ready for Phase 4 or production based on protocol tests alone.
+- Twenty-three new JVM tests cover codec/encrypted round-trip and legacy support, hash encoding/random generation, staging/read-back failures, lost responses, simulated coordinator restart, promotion failures, both generations during disconnect, cancellation and pre-staging revocation. They use JVM crypto plus injected storage/API doubles, not real Android Keystore/AtomicFile or live HTTP.
+- Android build/lint/unit tests pass, 57 tests total, zero lint errors/13 existing warnings. SDK inspection found `emulator/emulator.exe` absent. Next acceptance preparation should inspect local acceleration support and install/configure a test emulator if feasible, then add/run actual Keystore journal instrumentation and live isolated API acceptance. The new backend migration remains tested only on isolated databases.

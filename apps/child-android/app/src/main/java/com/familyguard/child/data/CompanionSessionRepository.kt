@@ -18,7 +18,7 @@ interface CompanionSessionApi {
 }
 
 /** Uses device credentials only. Never log bearer headers or forward them through redirects. */
-class CompanionSessionRepository : CompanionSessionApi {
+class CompanionSessionRepository : CompanionSessionApi, CompanionRotationApi {
     override suspend fun status(credential: String): CompanionDevice = withContext(Dispatchers.IO) {
         val result = request("GET", "companion/me", credential)
         val device = result.getJSONObject("device")
@@ -33,7 +33,13 @@ class CompanionSessionRepository : CompanionSessionApi {
         Unit
     }
 
-    private fun request(method: String, path: String, credential: String): JSONObject {
+    override suspend fun rotate(currentCredential: String, nextCredentialHash: String): Unit = withContext(Dispatchers.IO) {
+        require(nextCredentialHash.matches(Regex("[a-f0-9]{64}"))) { "Invalid replacement hash." }
+        val response = request("POST", "companion/rotate", currentCredential,
+            JSONObject().put("next_credential_hash", nextCredentialHash))
+        check(response.getBoolean("rotated")) { "Rotation is unconfirmed." }
+    }
+    private fun request(method: String, path: String, credential: String, body: JSONObject? = null): JSONObject {
         require(credential.matches(Regex("[a-f0-9]{64}"))) { "Invalid device credential." }
         require(BuildConfig.API_BASE_URL.startsWith("https://") ||
             (BuildConfig.DEBUG && BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))) {
@@ -50,8 +56,10 @@ class CompanionSessionRepository : CompanionSessionApi {
             connection.setRequestProperty("Authorization", "Bearer $credential")
             if (method == "POST") {
                 connection.doOutput = true
-                connection.setFixedLengthStreamingMode(0)
-                connection.outputStream.use { }
+                val payload = body?.toString()?.toByteArray(Charsets.UTF_8) ?: ByteArray(0)
+                if (body != null) connection.setRequestProperty("Content-Type", "application/json")
+                connection.setFixedLengthStreamingMode(payload.size)
+                connection.outputStream.use { it.write(payload) }
             }
             val status = connection.responseCode
             if (status == 401) throw DeviceUnauthorizedException()

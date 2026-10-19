@@ -30,6 +30,11 @@ class DeviceSessionViewModel(application: Application) : AndroidViewModel(applic
     suspend fun approve(code: String): DeviceSession.ApprovalResult =
         session.approve(code, Build.MODEL.take(100), Build.VERSION.RELEASE.take(30))
 
+    fun rotate() {
+        if (operation?.isActive == true) return
+        operation = viewModelScope.launch { session.rotate() }
+    }
+
     fun disconnect() {
         if (operation?.isActive == true) return
         operation = viewModelScope.launch { session.disconnect() }

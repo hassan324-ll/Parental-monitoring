@@ -42,4 +42,8 @@ Reference: https://developer.android.com/privacy-and-security/keystore
 - Eleven approval transaction JVM tests plus four additional preview/consent tests bring the Android total to 34. Actual Android Keystore, UI consent, restart, live HTTP, backup exclusions and compensation on a device remain acceptance gates. Credential rotation and its server concurrency/replay protection remain the next implementation slice before Phase 4.
 ## Backend rotation milestone
 
-Hash-only rotation and retained-history reuse prevention are now implemented with locked re-authentication and PostgreSQL race tests. Android durable staging/recovery remains the next slice; no rotation button or automatic call is enabled. See [rotation contract](phase3c-credential-rotation.md).
+Hash-only rotation and retained-history reuse prevention are now implemented with locked re-authentication and PostgreSQL race tests. Android durable staging/recovery and an explicit rotation confirmation are now implemented with JVM coverage; no automatic rotation is enabled and actual platform acceptance remains open. See [rotation contract](phase3c-credential-rotation.md).
+
+## Android rotation handoff milestone
+
+Versioned encrypted current/pending journals, legacy reads, staged-hash requests and recovery-aware restore/disconnect are implemented. Final Android suite: 57 passing JVM tests. These simulate restart/storage/network failures and do not establish real platform durability. See the rotation contract for conservative all-401 recovery limits and native acceptance prerequisites. SDK emulator executable is currently absent; emulator/instrumentation preparation is the next bounded task, not Phase 4 collection.

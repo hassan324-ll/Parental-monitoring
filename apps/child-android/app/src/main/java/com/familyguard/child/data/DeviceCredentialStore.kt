@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
+import java.io.DataInputStream
 import java.io.File
 import java.security.KeyStore
 import javax.crypto.KeyGenerator
@@ -20,8 +21,8 @@ interface DeviceCredentialStore {
     suspend fun clear()
 }
 
-/** App-private ciphertext excluded from backup. Requires a non-exportable Android Keystore key. */
-class KeystoreDeviceCredentialStore(context: Context) : DeviceCredentialStore {
+/** An atomic encrypted journal keeps both generations through a rotation handoff. */
+class KeystoreDeviceCredentialStore(context: Context) : RotatingDeviceCredentialStore {
     private val file = AtomicFile(File(context.applicationContext.noBackupFilesDir, "device-credential.v1"))
 
     override suspend fun prepare(): Unit = withContext(Dispatchers.IO) {
@@ -30,17 +31,10 @@ class KeystoreDeviceCredentialStore(context: Context) : DeviceCredentialStore {
             try {
                 val key = key(create = true)
                 val encrypted = CredentialCipher.encrypt("storage-readiness", key)
-                val output = probe.startWrite()
-                try {
-                    output.write(encrypted)
-                    probe.finishWrite(output)
-                } catch (failure: Exception) {
-                    probe.failWrite(output)
-                    throw failure
-                }
+                writeAtomic(probe, encrypted)
                 val restored = probe.openRead().use { input ->
                     val bytes = ByteArray(encrypted.size)
-                    java.io.DataInputStream(input).readFully(bytes)
+                    DataInputStream(input).readFully(bytes)
                     CredentialCipher.decrypt(bytes, key)
                 }
                 check(restored == "storage-readiness") { "Secure storage is unavailable." }
@@ -49,52 +43,91 @@ class KeystoreDeviceCredentialStore(context: Context) : DeviceCredentialStore {
             }
         }
     }
+
     override suspend fun save(token: String): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
-            val encrypted = CredentialCipher.encrypt(token, key(create = true))
-            val output = file.startWrite()
-            try {
-                output.write(encrypted)
-                file.finishWrite(output)
-            } catch (failure: Exception) {
-                file.failWrite(output)
-                throw IllegalStateException("Could not persist device credential.")
+            val existing = readLocked()
+            check(existing == null || (existing.current == token && existing.pending == null)) {
+                "Cannot overwrite an existing credential journal."
             }
+            writeLocked(CredentialJournal(token))
         }
     }
 
-    override suspend fun read(): String? = withContext(Dispatchers.IO) {
+    override suspend fun read(): String? = readJournal()?.current
+
+    override suspend fun readJournal(): CredentialJournal? = withContext(Dispatchers.IO) {
+        lock.withLock { readLocked() }
+    }
+
+    override suspend fun stage(current: String, pending: String): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
-            if (!file.baseFile.exists() && !File(file.baseFile.path + ".bak").exists()) {
-                return@withLock null
+            val existing = readLocked()
+            check(existing?.current == current && (existing.pending == null || existing.pending == pending)) {
+                "Credential journal changed before staging."
             }
-            try {
-                val encrypted = file.openRead().use { input ->
-                    val buffer = ByteArray(8193)
-                    var size = 0
-                    while (size < buffer.size) {
-                        val count = input.read(buffer, size, buffer.size - size)
-                        if (count < 0) break
-                        size += count
-                    }
-                    val bytes = buffer.copyOf(size)
-                    check(bytes.size <= 8192) { "Invalid encrypted credential." }
-                    bytes
-                }
-                CredentialCipher.decrypt(encrypted, key(create = false))
-            } catch (failure: Exception) {
-                // Never silently replace a missing/invalid key or treat corrupted state as paired.
-                throw IllegalStateException("Stored device credential is unavailable. Re-pairing is required.")
+            writeLocked(CredentialJournal(current, pending))
+        }
+    }
+
+    override suspend fun promote(current: String, pending: String): Unit = withContext(Dispatchers.IO) {
+        lock.withLock {
+            val existing = readLocked()
+            check(existing?.current == current && existing.pending == pending) {
+                "Credential journal changed before promotion."
             }
+            writeLocked(CredentialJournal(pending))
         }
     }
 
     override suspend fun clear(): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
             file.delete()
-            check(!file.baseFile.exists()) { "Could not clear device credential." }
+            check(listOf("", ".bak", ".new").none { File(file.baseFile.path + it).exists() }) {
+                "Could not clear device credential."
+            }
             val store = KeyStore.getInstance(PROVIDER).apply { load(null) }
             if (store.containsAlias(ALIAS)) store.deleteEntry(ALIAS)
+        }
+    }
+
+    private fun readLocked(): CredentialJournal? {
+        if (!file.baseFile.exists() && !File(file.baseFile.path + ".bak").exists()) return null
+        try {
+            val encrypted = file.openRead().use { input ->
+                val buffer = ByteArray(8193)
+                var size = 0
+                while (size < buffer.size) {
+                    val count = input.read(buffer, size, buffer.size - size)
+                    if (count < 0) break
+                    size += count
+                }
+                check(size <= 8192) { "Invalid encrypted credential." }
+                buffer.copyOf(size)
+            }
+            return CredentialJournalCodec.decode(CredentialCipher.decrypt(encrypted, key(create = false)))
+        } catch (failure: Exception) {
+            throw IllegalStateException("Stored credential journal unavailable. Revoke from the parent account before re-pairing.")
+        }
+    }
+
+    private fun writeLocked(journal: CredentialJournal) {
+        val encrypted = CredentialCipher.encrypt(CredentialJournalCodec.encode(journal), key(create = true))
+        writeAtomic(file, encrypted)
+        val restored = readLocked()
+        check(restored?.current == journal.current && restored.pending == journal.pending) {
+            "Credential journal read-back failed."
+        }
+    }
+
+    private fun writeAtomic(target: AtomicFile, encrypted: ByteArray) {
+        val output = target.startWrite()
+        try {
+            output.write(encrypted)
+            target.finishWrite(output)
+        } catch (failure: Exception) {
+            target.failWrite(output)
+            throw IllegalStateException("Could not persist credential journal.")
         }
     }
 

@@ -14,15 +14,18 @@ import kotlinx.coroutines.sync.withLock
 class DeviceSession(
     private val credentials: DeviceCredentialStore,
     private val api: CompanionSessionApi,
-    private val pairing: PairingApprovalApi? = null
+    private val pairing: PairingApprovalApi? = null,
+    generateRotationCredential: () -> String = CredentialTokens::generate
 ) {
-    enum class Phase { UNPAIRED, CHECKING, CONNECTED, OFFLINE, DISCONNECTING, PAIRING, ERROR }
+    enum class Phase { UNPAIRED, CHECKING, CONNECTED, OFFLINE, DISCONNECTING, PAIRING, ROTATING, ERROR }
     data class State(
         val phase: Phase = Phase.UNPAIRED,
         val device: CompanionDevice? = null,
         val message: String = "No device session has been verified."
     )
     enum class ApprovalResult { VERIFIED, SAVED_UNVERIFIED, FAILED, RECOVERY_REQUIRED }
+    private val rotation = if (credentials is RotatingDeviceCredentialStore && api is CompanionRotationApi)
+        DeviceRotation(credentials, api, api, generateRotationCredential) else null
     private var pendingRevocation: String? = null
     private val lock = Mutex()
     private val mutableState = MutableStateFlow(State())
@@ -35,6 +38,11 @@ class DeviceSession(
         }
         mutableState.value = State(Phase.CHECKING, message = "Checking device authorization…")
         try {
+            val recovered = rotation?.recover()
+            if (recovered != null) {
+                mutableState.value = recovered
+                return@withLock
+            }
             val token = readCredential() ?: return@withLock
             try {
                 val device = api.status(token)
@@ -55,6 +63,13 @@ class DeviceSession(
     suspend fun disconnect() = lock.withLock {
         mutableState.value = State(Phase.DISCONNECTING, message = "Disconnecting device…")
         try {
+            if (pendingRevocation == null) {
+                val recovered = rotation?.disconnectPending()
+                if (recovered != null) {
+                    mutableState.value = recovered
+                    return@withLock
+                }
+            }
             val token = pendingRevocation ?: readCredential() ?: return@withLock
             try {
                 api.disconnect(token)
@@ -73,6 +88,19 @@ class DeviceSession(
         }
     }
 
+    suspend fun rotate() = lock.withLock {
+        if (pendingRevocation != null || rotation == null) {
+            mutableState.value = State(Phase.ERROR, message = "Resolve pairing recovery before rotating credentials.")
+            return@withLock
+        }
+        mutableState.value = State(Phase.ROTATING, message = "Rotating the device credential securely…")
+        try {
+            mutableState.value = rotation.rotate()
+        } catch (cancelled: CancellationException) {
+            mutableState.value = State(Phase.ERROR, message = "Rotation interrupted. Recovery data is retained; retry verification or disconnect.")
+            throw cancelled
+        }
+    }
     /** Called only after preview and an affirmative tap. Finish persistence/compensation if UI leaves. */
     suspend fun approve(code: String, deviceName: String, androidVersion: String): ApprovalResult = lock.withLock {
         currentCoroutineContext().ensureActive()

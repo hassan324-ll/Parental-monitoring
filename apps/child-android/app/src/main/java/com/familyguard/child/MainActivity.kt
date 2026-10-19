@@ -33,7 +33,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val deviceSession:DeviceSessionViewModel=viewModel()
  val sessionState by deviceSession.state.collectAsStateWithLifecycle()
  var confirmDisconnect by remember { mutableStateOf(false) }
- val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING || sessionState.phase==DeviceSession.Phase.PAIRING
+ var confirmRotation by remember { mutableStateOf(false) }
+ val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING || sessionState.phase==DeviceSession.Phase.PAIRING || sessionState.phase==DeviceSession.Phase.ROTATING
  val context=LocalContext.current
  Surface(Modifier.fillMaxSize()){Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState())){
  Text("FamilyGuard Companion",style=MaterialTheme.typography.headlineMedium)
@@ -72,7 +73,11 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  sessionState.device?.let { Text("Device: "+it.name) }
  Button(onClick=deviceSession::refresh,enabled=!sessionBusy){Text("Verify device authorization")}
  Button(onClick={confirmDisconnect=true},enabled=!sessionBusy && sessionState.phase!=DeviceSession.Phase.UNPAIRED){Text("Disconnect device")}
+ Button(onClick={confirmRotation=true},enabled=!sessionBusy && sessionState.phase!=DeviceSession.Phase.UNPAIRED){Text("Rotate or recover credential")}
  Text(status);Button(onClick=model::checkHealth){Text("Check API connection")}
+ }
+ if(confirmRotation){
+ AlertDialog(onDismissRequest={confirmRotation=false},title={Text("Rotate device credential?")},text={Text("The replacement is saved securely before the server request. Pending recovery is preserved if the connection fails. This grants no monitoring permissions.")},confirmButton={TextButton(onClick={confirmRotation=false;deviceSession.rotate()}){Text("Rotate or recover")}},dismissButton={TextButton(onClick={confirmRotation=false}){Text("Cancel")}})
  }
  if(confirmDisconnect){
  AlertDialog(onDismissRequest={confirmDisconnect=false},title={Text("Disconnect this device?")},text={Text("This requests server revocation and removes local credentials after confirmation. If offline, retry or revoke from the parent account.")},confirmButton={TextButton(onClick={confirmDisconnect=false;deviceSession.disconnect()}){Text("Disconnect")}},dismissButton={TextButton(onClick={confirmDisconnect=false}){Text("Cancel")}})
