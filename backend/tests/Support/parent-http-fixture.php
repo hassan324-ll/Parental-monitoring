@@ -72,7 +72,13 @@ if ($action === 'prepare') {
             'recorded_until' => $day->addDay()->format('Y-m-d\TH:i:s\Z'), 'apps' => [['package_name' => 'example.synthetic', 'duration_seconds' => 60]]]);
         app(LocationIngestionService::class)->store($device->id, $hash, ['consent_version' => 3, 'recorded_at' => now('UTC')->subMinute()->format('Y-m-d\TH:i:s\Z'),
             'latitude' => 0.004321, 'longitude' => 0.006789, 'accuracy_meters' => 20]);
-        $result = ['users' => $users, 'tokens' => $tokens, 'certificate' => $pem, 'family' => $family, 'other_family' => $other, 'device' => $device->public_id];
+        $expired = strtoupper(bin2hex(random_bytes(16)));
+        DB::table('device_pairings')->insert(['family_id' => $family, 'child_id' => $child, 'token_hash' => hash('sha256', $expired),
+            'expires_at' => now()->subMinute(), 'created_at' => now(), 'updated_at' => now()]);
+        $candidate = bin2hex(random_bytes(32));
+        $replacement = bin2hex(random_bytes(32));
+        $result = ['users' => $users, 'tokens' => $tokens, 'certificate' => $pem, 'family' => $family, 'other_family' => $other, 'device' => $device->public_id, 'child' => $child, 'expired_code' => $expired,
+            'candidate' => $candidate, 'candidate_hash' => hash('sha256', $candidate), 'replacement' => $replacement, 'replacement_hash' => hash('sha256', $replacement)];
         if (file_put_contents($path, json_encode($result, JSON_THROW_ON_ERROR), LOCK_EX) === false) {
             throw new RuntimeException('Parent fixture write failed; transaction rolled back.');
         }
