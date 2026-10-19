@@ -35,6 +35,11 @@ class DeviceSessionViewModel(application: Application) : AndroidViewModel(applic
         operation = viewModelScope.launch { session.rotate() }
     }
 
+    fun forgetLocalPairing(parentRevocationAcknowledged: Boolean) {
+        if (operation?.isActive == true) return
+        operation = viewModelScope.launch { session.forgetLocalPairing(parentRevocationAcknowledged) }
+    }
+
     fun disconnect() {
         if (operation?.isActive == true) return
         operation = viewModelScope.launch { session.disconnect() }

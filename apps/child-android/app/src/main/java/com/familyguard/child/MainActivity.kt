@@ -34,6 +34,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val sessionState by deviceSession.state.collectAsStateWithLifecycle()
  var confirmDisconnect by remember { mutableStateOf(false) }
  var confirmRotation by remember { mutableStateOf(false) }
+ var confirmLocalReset by remember { mutableStateOf(false) }
+ var parentRevocationAcknowledged by remember { mutableStateOf(false) }
  val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING || sessionState.phase==DeviceSession.Phase.PAIRING || sessionState.phase==DeviceSession.Phase.ROTATING
  val context=LocalContext.current
  Surface(Modifier.fillMaxSize()){Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState())){
@@ -74,7 +76,17 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Button(onClick=deviceSession::refresh,enabled=!sessionBusy){Text("Verify device authorization")}
  Button(onClick={confirmDisconnect=true},enabled=!sessionBusy && sessionState.phase!=DeviceSession.Phase.UNPAIRED){Text("Disconnect device")}
  Button(onClick={confirmRotation=true},enabled=!sessionBusy && sessionState.phase!=DeviceSession.Phase.UNPAIRED){Text("Rotate or recover credential")}
+ if(sessionState.canForgetLocalPairing){
+ TextButton(onClick={parentRevocationAcknowledged=false;confirmLocalReset=true},enabled=!sessionBusy){Text("Remove local pairing recovery data")}
+ }
  Text(status);Button(onClick=model::checkHealth){Text("Check API connection")}
+ }
+ if(confirmLocalReset){
+ AlertDialog(onDismissRequest={confirmLocalReset=false;parentRevocationAcknowledged=false},title={Text("Remove local pairing data?")},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+ Text("Try Disconnect first. If recovery cannot finish, ask the parent to revoke this device in Connected Devices before removing local data. Erasing this device's credentials does not revoke server access and cannot undo an in-flight server request. Recovery credentials will be lost.")
+ Row { Checkbox(checked=parentRevocationAcknowledged,onCheckedChange={parentRevocationAcknowledged=it});Text("I have revoked this device from the parent account.") }
+ Text("The app cannot verify that acknowledgment. Cancel to keep recovery data.")
+ }},confirmButton={TextButton(onClick={confirmLocalReset=false;deviceSession.forgetLocalPairing(parentRevocationAcknowledged);parentRevocationAcknowledged=false},enabled=parentRevocationAcknowledged && sessionState.canForgetLocalPairing && !sessionBusy){Text("Remove local data")}},dismissButton={TextButton(onClick={confirmLocalReset=false;parentRevocationAcknowledged=false}){Text("Cancel")}})
  }
  if(confirmRotation){
  AlertDialog(onDismissRequest={confirmRotation=false},title={Text("Rotate device credential?")},text={Text("The replacement is saved securely before the server request. Pending recovery is preserved if the connection fails. This grants no monitoring permissions.")},confirmButton={TextButton(onClick={confirmRotation=false;deviceSession.rotate()}){Text("Rotate or recover")}},dismissButton={TextButton(onClick={confirmRotation=false}){Text("Cancel")}})

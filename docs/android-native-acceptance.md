@@ -1,6 +1,6 @@
 # Android native acceptance setup
 
-Status, 19 October 2026: emulator and system image installed; AVD prepared but not booted. Eight instrumented tests compile; none have executed. All 57 JVM tests pass. Windows acceleration is the current blocker. This setup does not close Phase 3 acceptance.
+Status, 19 October 2026: emulator and system image installed; AVD prepared but not booted. Eight instrumented tests compile; none have executed. All 66 JVM tests pass after the explicit local recovery milestone. Windows acceleration is the current blocker. This setup does not close Phase 3 acceptance.
 
 ## Windows prerequisite
 
@@ -63,4 +63,4 @@ Debug API base URL is `http://10.0.2.2:8000/api/v1/`. Live pairing requires a de
 
 Eight tests target actual Android Keystore and AtomicFile behavior using unique test aliases and directories: encrypted persistence, reconstructed current/pending journal and promotion, legacy upgrade, missing key, tampering, stale writes, clear, aborted atomic write. The default app credential is preserved. No plaintext test secret is used as a real credential.
 
-Even when these pass, actual process death/restart, backup/transfer exclusion, live HTTP rotation/revocation, visible consent and compensation UI, verified-parent/browser/inbox and CI acceptance remain separate work. Current both-401 rotation recovery deliberately retains the journal; controlled local reset UX is still incomplete. Do not start collection based only on build success.
+Even when these pass, actual process death/restart, backup/transfer exclusion, live HTTP rotation/revocation, visible consent and compensation UI, verified-parent/browser/inbox and CI acceptance remain separate work. Current both-401 rotation recovery retains the journal automatically; an explicitly acknowledged/confirmed recovery-only local erase is now implemented with JVM coverage. It does not revoke server access, and actual native/UI acceptance remains pending. Do not start collection based only on build success.

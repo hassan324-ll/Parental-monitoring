@@ -22,16 +22,24 @@ class DeviceSession(
         val phase: Phase = Phase.UNPAIRED,
         val device: CompanionDevice? = null,
         val message: String = "No device session has been verified."
-    )
+    ) {
+        val canForgetLocalPairing: Boolean get() = phase == Phase.ERROR || phase == Phase.OFFLINE
+    }
+
     enum class ApprovalResult { VERIFIED, SAVED_UNVERIFIED, FAILED, RECOVERY_REQUIRED }
     private val rotation = if (credentials is RotatingDeviceCredentialStore && api is CompanionRotationApi)
         DeviceRotation(credentials, api, api, generateRotationCredential) else null
     private var pendingRevocation: String? = null
+    private var localCleanupUnverified = false
     private val lock = Mutex()
     private val mutableState = MutableStateFlow(State())
     val state = mutableState.asStateFlow()
 
     suspend fun restore() = lock.withLock {
+        if (localCleanupUnverified) {
+            mutableState.value = State(Phase.ERROR, message = "Local pairing cleanup could not be verified. Retry Remove local pairing recovery data after checking parent revocation.")
+            return@withLock
+        }
         if (pendingRevocation != null) {
             mutableState.value = State(Phase.ERROR, message = "Pairing recovery required. Retry disconnect or revoke from the parent account.")
             return@withLock
@@ -101,6 +109,28 @@ class DeviceSession(
             throw cancelled
         }
     }
+    /** Local erasure is distinct from server disconnect; requires explicit parent-revocation acknowledgment. */
+    suspend fun forgetLocalPairing(parentRevocationAcknowledged: Boolean = false) = lock.withLock {
+        currentCoroutineContext().ensureActive()
+        if (!parentRevocationAcknowledged || !state.value.canForgetLocalPairing) return@withLock
+        withContext(NonCancellable) {
+            localCleanupUnverified = true
+            mutableState.value = State(Phase.DISCONNECTING, message = "Removing local pairing recovery data…")
+            try {
+                credentials.clear()
+                check(credentials.read() == null) { "Local credential cleanup could not be verified." }
+                if (credentials is RotatingDeviceCredentialStore) {
+                    check(credentials.readJournal() == null) { "Local rotation cleanup could not be verified." }
+                }
+                pendingRevocation = null
+                localCleanupUnverified = false
+                mutableState.value = State(message = "Local pairing data removed. This did not revoke server access; server revocation has not been verified. Use a new invitation to pair again.")
+            } catch (failure: Exception) {
+                mutableState.value = State(Phase.ERROR, message = "Local pairing cleanup could not be verified. Re-pairing is blocked. Retry cleanup and check revocation from the parent account.")
+            }
+        }
+    }
+
     /** Called only after preview and an affirmative tap. Finish persistence/compensation if UI leaves. */
     suspend fun approve(code: String, deviceName: String, androidVersion: String): ApprovalResult = lock.withLock {
         currentCoroutineContext().ensureActive()
@@ -109,7 +139,7 @@ class DeviceSession(
                 return@withContext ApprovalResult.FAILED
             }
             try {
-                check(pendingRevocation == null && credentials.read() == null)
+                check(pendingRevocation == null && !localCleanupUnverified && credentials.read() == null)
                 credentials.prepare()
             } catch (failure: Exception) {
                 mutableState.value = State(Phase.ERROR, message = "Cannot start pairing. Disconnect any existing session and check secure storage first.")

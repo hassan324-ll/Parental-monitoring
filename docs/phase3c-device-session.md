@@ -50,3 +50,9 @@ Versioned encrypted current/pending journals, legacy reads, staged-hash requests
 ## Native test harness and prepared emulator
 
 Eight isolated Keystore/AtomicFile instrumentation tests now compile, alongside 57 passing JVM tests. Emulator 37.2.12 and an API 26 AOSP x86_64 image are installed; FamilyGuard_API26_Test is prepared. Connected tests failed because no device is connected (zero executed). Windows acceleration remains disabled after a cancelled administrator prompt; no OS feature or reboot was performed. See [native acceptance setup](android-native-acceptance.md). This supersedes the earlier missing-emulator observation, without closing native acceptance or Phase 4 prerequisites.
+
+## Explicit local recovery milestone
+
+Connected Device Home and Connection Settings now offer a recovery-only local erase action for ERROR/OFFLINE states. The user must first acknowledge parent-side revocation and separately confirm loss of recovery data; the dialog states this is not verified by the app and local erase does not revoke server access. Cancel preserves recovery material. The coordinator rechecks eligibility under its mutex, sends no HTTP requests, clears and verifies storage, then drops compensation credentials. A cleanup failure blocks re-pairing and restoration in the current session until explicit retry succeeds. The failure latch is in memory; restart still reads actual storage and requires server validation. Connected sessions use Disconnect instead.
+
+Nine new JVM recovery regressions pass, bringing the full Android suite to 66. App/test APK builds and lint pass (0 errors/13 warnings). Eight native instrumentation tests remain unexecuted. Real consent dialog, Keystore cleanup, process-death and live parent revocation acceptance remain open; local erase alone is never evidence of server revocation or Phase 4 readiness.
