@@ -7,7 +7,7 @@ Authorized roadmap continuation: 19 October 2026. This milestone completes the r
 - `DeviceCredentialStore` is an injectable suspend API for save/read/clear.
 - `KeystoreDeviceCredentialStore` encrypts with a non-exportable Android Keystore AES-256 key and AES-GCM, uses a fresh provider-generated IV and authenticated version-specific context, and writes ciphertext atomically in `noBackupFilesDir`.
 - Reads are bounded; invalid format, tampering, wrong/missing key and unavailable storage fail closed. There is no plaintext fallback. Operations run on IO and share a mutex. Clear removes ciphertext and key. Manifest already disables backup.
-- This primitive is not wired into approval yet. No new permissions, monitoring, production endpoint or automatic consent are introduced.
+- This primitive is now wired into explicit approval, with readiness checks and read-back verification (see latest slice below). No new permissions, monitoring, production endpoint or automatic consent are introduced.
 - Four JVM tests exercise round-trip/randomized ciphertext, ciphertext and IV tampering, wrong key/version/truncation, and input/envelope size bounds. These use JVM cryptography, not Android Keystore. Three existing pairing-preview/cancellation tests remain passing.
 
 ## Next implementation slices
@@ -22,7 +22,7 @@ Authorized roadmap continuation: 19 October 2026. This milestone completes the r
 
 `gradlew.bat assembleDebug lintDebug testDebugUnitTest` passed after fixing a lint-confirmed API-33-only stream call to support minSdk 26. Seven JVM tests passed; lint: zero errors, 13 existing warnings. SDK command-line tooling also warned about XML version mismatch; build succeeded.
 
-`adb devices` returned no device/emulator. Android Keystore file persistence, crash recovery, key invalidation and backup/device transfer behavior remain unexecuted platform acceptance, not proven by JVM crypto tests. Approval remains disabled until lifecycle integration is complete. Browser/inbox and CI gaps in the full report remain open. No main merge or production deployment is authorized by this document.
+`adb devices` returned no device/emulator. Android Keystore file persistence, crash recovery, key invalidation and backup/device transfer behavior remain unexecuted platform acceptance, not proven by JVM crypto tests. Explicit approval is now wired in development; actual platform acceptance remains pending. Browser/inbox and CI gaps in the full report remain open. No main merge or production deployment is authorized by this document.
 
 Reference: https://developer.android.com/privacy-and-security/keystore
 ## Implemented slice: restore, status and disconnect
@@ -31,4 +31,12 @@ Reference: https://developer.android.com/privacy-and-security/keystore
 - `DeviceSession` serializes operations. Startup restoration does not publish connected state until server validation. HTTP 401 clears revoked credentials; failed local cleanup is an explicit error. Network failures preserve retry credentials but never claim verified connectivity or successful server revocation. Cancellation leaves a retryable, unverified state.
 - Twelve JVM tests cover no stored credential, server validation before connected state, credential-free observable state, 401 clearing, offline retry, storage failure, revoke-before-clear ordering, already-revoked cleanup, unconfirmed offline disconnect, cleanup retry, serialization and cancellation.
 - `DeviceSessionViewModel` restores at startup; Connected Device Home and Connection Settings show status/retry controls and an affirmative disconnect confirmation. These are source/build-verified Compose changes; no runtime UI/device acceptance is claimed.
-- Approval remains disabled pending storage-readiness checks, explicit consent integration and compensation for approval/persistence failure. No monitoring permissions or collection were added.
+- Explicit approval, readiness checks and compensation are now implemented as described below; actual device acceptance is still required. No monitoring permissions or collection were added.
+## Implemented slice: explicit approval and partial-failure recovery
+
+- Android approval requires a successful preview of the current code and an affirmative tap labelled **Approve pairing on this device**. Changing the code invalidates preview; cancellation before approval sends nothing. Duplicate submissions and editing/cancel actions after sending are blocked while completion/recovery runs.
+- Storage readiness performs a separate encrypted atomic write/read probe without replacing an existing credential. Existing stored sessions cannot be overwritten by a new approval. The shared session mutex serializes approval, restore and disconnect.
+- After the server issues a token, the app persists it and checks encrypted read-back before server validation. A save/read-back failure triggers compensating server disconnect and local cleanup. If compensation fails, recovery state keeps the credential in memory for explicit disconnect retry and instructs parent-side revocation before leaving/re-pairing. It is never exposed in UI state or diagnostic string output.
+- Once an affirmative approval has started, coroutine cancellation does not discard the result before persistence or compensation finishes. This does not survive force-stop, process death or power loss. A dropped approval response can still consume a code without delivering the token; the UI explicitly reports uncertainty and directs parent device-list review/revocation. No exactly-once network transaction is claimed.
+- Approval can finish as verified, securely saved but unverified/offline, failed, or recovery required. Only server-verified success claims a connected session. No monitoring permissions or data collection are enabled.
+- Eleven approval transaction JVM tests plus four additional preview/consent tests bring the Android total to 34. Actual Android Keystore, UI consent, restart, live HTTP, backup exclusions and compensation on a device remain acceptance gates. Credential rotation and its server concurrency/replay protection remain the next implementation slice before Phase 4.

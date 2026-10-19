@@ -2,6 +2,7 @@ package com.familyguard.child.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.familyguard.child.data.DeviceSession
 import com.familyguard.child.data.PairingRepository
 import com.familyguard.child.data.PairingPreviewApi
 import kotlinx.coroutines.Job
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Preview only: approval remains blocked until secure credential storage exists. */
+/** Preview and affirmative approval only; an in-flight approval must finish persistence/recovery. */
 class PairingViewModel(private val api: PairingPreviewApi = PairingRepository()) : ViewModel() {
     private var previewJob: Job? = null
     private var requestVersion = 0
@@ -21,11 +22,13 @@ class PairingViewModel(private val api: PairingPreviewApi = PairingRepository())
         val code: String = "",
         val preview: PairingRepository.Preview? = null,
         val busy: Boolean = false,
+        val approving: Boolean = false,
         val message: String = "",
         val pairedThisSession: Boolean = false
     )
 
     fun updateCode(input: String) {
+        if (state.value.approving) return
         requestVersion++
         previewJob?.cancel()
         _state.value = State(code = input.uppercase().filter { it in "0123456789ABCDEF" }.take(32))
@@ -34,7 +37,7 @@ class PairingViewModel(private val api: PairingPreviewApi = PairingRepository())
     fun preview() {
         val code = state.value.code
         if (code.length != 32 || state.value.busy) return
-        _state.value = state.value.copy(busy = true, message = "")
+        _state.value = state.value.copy(busy = true, preview = null, message = "")
         val version = ++requestVersion
         previewJob = viewModelScope.launch {
             try {
@@ -52,16 +55,36 @@ class PairingViewModel(private val api: PairingPreviewApi = PairingRepository())
     }
 
     fun cancel() {
+        if (state.value.approving) return
         requestVersion++
         previewJob?.cancel()
         _state.value = State(message = "Pairing cancelled. No approval sent.")
     }
 
-    // Approval intentionally disabled until Keystore-backed credential persistence is ready.
-    // Otherwise a consumed one-time code would create an inaccessible paired device.
-    fun approve() {
-        _state.value = state.value.copy(
-            message = "Approval is not yet available. Secure device credential storage is required first."
-        )
+    fun approve(action: (suspend (String) -> DeviceSession.ApprovalResult)? = null) {
+        if (state.value.busy || state.value.preview == null || state.value.code.length != 32) return
+        if (action == null) {
+            _state.value = state.value.copy(message = "Secure device credential storage must be connected before approval.")
+            return
+        }
+        val code = state.value.code
+        _state.value = state.value.copy(busy = true, approving = true, message = "Finishing approval and secure storage. Please wait.")
+        viewModelScope.launch {
+            try {
+                val result = action(code)
+                _state.value = State(
+                    pairedThisSession = result == DeviceSession.ApprovalResult.VERIFIED,
+                    message = when (result) {
+                        DeviceSession.ApprovalResult.VERIFIED -> "Pairing saved and verified. No monitoring is active."
+                        DeviceSession.ApprovalResult.SAVED_UNVERIFIED -> "Pairing saved. Open Connected Device Home to retry verification."
+                        DeviceSession.ApprovalResult.RECOVERY_REQUIRED -> "Recovery required. Open Connected Device Home and retry disconnect, or revoke from the parent account."
+                        DeviceSession.ApprovalResult.FAILED -> "Pairing did not complete. Check device status and the parent device list before retrying."
+                    }
+                )
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                _state.value = State(message = "Approval is unconfirmed. Check the parent device list and device status before retrying.")
+            }
+        }
     }
 }

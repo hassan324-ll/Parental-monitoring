@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 interface DeviceCredentialStore {
+    suspend fun prepare()
     suspend fun save(token: String)
     suspend fun read(): String?
     suspend fun clear()
@@ -23,6 +24,31 @@ interface DeviceCredentialStore {
 class KeystoreDeviceCredentialStore(context: Context) : DeviceCredentialStore {
     private val file = AtomicFile(File(context.applicationContext.noBackupFilesDir, "device-credential.v1"))
 
+    override suspend fun prepare(): Unit = withContext(Dispatchers.IO) {
+        lock.withLock {
+            val probe = AtomicFile(File(file.baseFile.parentFile, "credential-readiness.probe"))
+            try {
+                val key = key(create = true)
+                val encrypted = CredentialCipher.encrypt("storage-readiness", key)
+                val output = probe.startWrite()
+                try {
+                    output.write(encrypted)
+                    probe.finishWrite(output)
+                } catch (failure: Exception) {
+                    probe.failWrite(output)
+                    throw failure
+                }
+                val restored = probe.openRead().use { input ->
+                    val bytes = ByteArray(encrypted.size)
+                    java.io.DataInputStream(input).readFully(bytes)
+                    CredentialCipher.decrypt(bytes, key)
+                }
+                check(restored == "storage-readiness") { "Secure storage is unavailable." }
+            } finally {
+                probe.delete()
+            }
+        }
+    }
     override suspend fun save(token: String): Unit = withContext(Dispatchers.IO) {
         lock.withLock {
             val encrypted = CredentialCipher.encrypt(token, key(create = true))

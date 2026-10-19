@@ -11,17 +11,21 @@ interface PairingPreviewApi {
     suspend fun preview(code: String): PairingRepository.Preview
 }
 
+interface PairingApprovalApi {
+    suspend fun approve(code: String, deviceName: String, androidVersion: String): PairingRepository.Approval
+}
+
 /** Network-only pairing API. Never log invitation codes or device credentials. */
-class PairingRepository : PairingPreviewApi {
+class PairingRepository : PairingPreviewApi, PairingApprovalApi {
     data class Preview(val familyName: String, val childName: String)
-    data class Approval(val deviceToken: String, val deviceName: String)
+    class Approval(val deviceToken: String, val deviceName: String) { override fun toString() = "Approval(credential=redacted)" }
 
     override suspend fun preview(code: String): Preview = withContext(Dispatchers.IO) {
         val result = request("device-pairings/preview", JSONObject().put("code", code))
         Preview(result.getString("family_name"), result.getString("child_name"))
     }
 
-    suspend fun approve(code: String, deviceName: String, androidVersion: String): Approval =
+    override suspend fun approve(code: String, deviceName: String, androidVersion: String): Approval =
         withContext(Dispatchers.IO) {
             val body = JSONObject().put("code", code).put("approved", true)
                 .put("device_name", deviceName).put("android_version", androidVersion)

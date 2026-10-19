@@ -63,4 +63,78 @@ class PairingViewModelTest {
         assertFalse(model.state.value.pairedThisSession)
         assertTrue(model.state.value.message.contains("Secure device credential storage"))
     }
+    private fun readyModel() = PairingViewModel(object : PairingPreviewApi {
+        override suspend fun preview(code: String) = PairingRepository.Preview("Family", "Child")
+    })
+
+    @Test fun approvalRequiresPreviewAndCancellationSendsNoApproval() = runTest(dispatcher) {
+        val model = readyModel()
+        var calls = 0
+        val action: suspend (String) -> com.familyguard.child.data.DeviceSession.ApprovalResult = {
+            calls++; com.familyguard.child.data.DeviceSession.ApprovalResult.VERIFIED
+        }
+        model.updateCode("A".repeat(32))
+        model.approve(action)
+        advanceUntilIdle()
+        assertEquals(0, calls)
+        model.preview()
+        advanceUntilIdle()
+        model.cancel()
+        model.approve(action)
+        advanceUntilIdle()
+        assertEquals(0, calls)
+    }
+
+    @Test fun codeChangeInvalidatesPreviewBeforeApproval() = runTest(dispatcher) {
+        val model = readyModel()
+        var calls = 0
+        model.updateCode("A".repeat(32))
+        model.preview()
+        advanceUntilIdle()
+        model.updateCode("B".repeat(32))
+        model.approve { calls++; com.familyguard.child.data.DeviceSession.ApprovalResult.VERIFIED }
+        advanceUntilIdle()
+        assertEquals(0, calls)
+    }
+
+    @Test fun explicitApprovalCannotBeDuplicatedOrCancelledAfterSending() = runTest(dispatcher) {
+        val model = readyModel()
+        val response = CompletableDeferred<com.familyguard.child.data.DeviceSession.ApprovalResult>()
+        var calls = 0
+        val action: suspend (String) -> com.familyguard.child.data.DeviceSession.ApprovalResult = {
+            assertEquals("A".repeat(32), it)
+            calls++; response.await()
+        }
+        model.updateCode("A".repeat(32))
+        model.preview()
+        advanceUntilIdle()
+        model.approve(action)
+        runCurrent()
+        model.cancel()
+        model.updateCode("B".repeat(32))
+        model.approve(action)
+        assertTrue(model.state.value.approving)
+        assertEquals("A".repeat(32), model.state.value.code)
+        response.complete(com.familyguard.child.data.DeviceSession.ApprovalResult.VERIFIED)
+        advanceUntilIdle()
+        assertEquals(1, calls)
+        assertTrue(model.state.value.pairedThisSession)
+        assertEquals("", model.state.value.code)
+        assertNull(model.state.value.preview)
+    }
+
+    @Test fun failedPreviewDoesNotPermitApproval() = runTest(dispatcher) {
+        val model = PairingViewModel(object : PairingPreviewApi {
+            override suspend fun preview(code: String): PairingRepository.Preview = error("expired synthetic invitation")
+        })
+        var calls = 0
+        model.updateCode("A".repeat(32))
+        model.preview()
+        advanceUntilIdle()
+        model.approve { calls++; com.familyguard.child.data.DeviceSession.ApprovalResult.VERIFIED }
+        advanceUntilIdle()
+        assertEquals(0, calls)
+        assertNull(model.state.value.preview)
+        assertFalse(model.state.value.pairedThisSession)
+    }
 }

@@ -33,7 +33,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val deviceSession:DeviceSessionViewModel=viewModel()
  val sessionState by deviceSession.state.collectAsStateWithLifecycle()
  var confirmDisconnect by remember { mutableStateOf(false) }
- val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING
+ val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING || sessionState.phase==DeviceSession.Phase.PAIRING
  val context=LocalContext.current
  Surface(Modifier.fillMaxSize()){Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState())){
  Text("FamilyGuard Companion",style=MaterialTheme.typography.headlineMedium)
@@ -49,7 +49,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  5->"Activity sharing is not implemented. Nothing is being collected."
  6->"Location sharing is not implemented. GPS permission has not been requested."
  7->"No capture is active. Every future session requires fresh Android approval and a visible notification."
- 8->"You control sharing. Revocation must stop collection and end active sessions. Device status and disconnect are available in Connected Device Home. Pairing approval is not yet available."
+ 8->"You control sharing. Revocation must stop collection and end active sessions. Device status and disconnect are available in Connected Device Home. Pair only after reviewing the invitation and choosing Approve pairing on this device."
  9->"Emulator API: "+BuildConfig.API_BASE_URL+". Release API must be configured before distribution."
  else->sessionState.message
  })
@@ -60,10 +60,10 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Text("Family: "+pairingState.preview!!.familyName)
  Text("Child: "+pairingState.preview!!.childName)
  Text("Pairing would allow this device to identify itself to the family. It does not enable monitoring permissions.")
- Button(onClick=pairing::approve,enabled=false){Text("Approve pairing (coming soon)")}
+ Button(onClick={pairing.approve { code -> deviceSession.approve(code) }},enabled=!pairingState.busy && !sessionBusy && sessionState.phase==DeviceSession.Phase.UNPAIRED){Text("Approve pairing on this device")}
 
  }
- Button(onClick=pairing::cancel,enabled=pairingState.busy || pairingState.code.isNotBlank() || pairingState.preview!=null){Text("Cancel")}
+ Button(onClick=pairing::cancel,enabled=!pairingState.approving && (pairingState.busy || pairingState.code.isNotBlank() || pairingState.preview!=null)){Text("Cancel")}
  if(pairingState.message.isNotBlank()) Text(pairingState.message)
  }
  if(index==3)Button(onClick={context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Review Android permissions")}

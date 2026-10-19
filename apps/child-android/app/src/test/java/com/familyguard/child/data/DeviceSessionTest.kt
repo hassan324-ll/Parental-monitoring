@@ -18,6 +18,7 @@ class DeviceSessionTest {
         var clearCalls = 0
         var readFailure = false
         var clearFailure = false
+        override suspend fun prepare() { }
         override suspend fun save(token: String) { this.token = token }
         override suspend fun read(): String? {
             if (readFailure) throw IOException("synthetic storage failure")
