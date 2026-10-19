@@ -20,7 +20,7 @@ New `device_sharing_consents` migration has device/feature uniqueness, default-f
 
 ## Retention
 
-`php artisan familyguard:prune-sharing` purges all stored usage/location rows for disabled or revoked devices, and prunes enabled data: usage retains seven UTC calendar dates including today (older day rows deleted), location retains less than24hours (cutoff exactly24hours deleted). The command locks each device while deciding, scans in batches of100, and never reports private data. It was executed only inside isolated test cases. No scheduler/deployment was changed; an operational schedule and production volume acceptance are still required before ingestion release. Stop/delete/revoke purges are immediate and do not wait for this command.
+`php artisan familyguard:prune-sharing` purges all stored usage/location rows for disabled or revoked devices, and prunes enabled data: usage retains seven UTC calendar dates including today (older day rows deleted), location retains less than24hours (cutoff exactly24hours deleted). The command locks each device while deciding, scans in batches of100, and never reports private data. It was executed only inside isolated test cases. An opt-in application schedule is now defined in [Phase4G](phase4g-sharing-retention-schedule.md), disabled by default; no OS job/deployment was enabled. Reviewed operational activation and production-volume acceptance remain required before ingestion release. Stop/delete/revoke purges are immediate and do not wait for this command.
 
 ## Verification and remaining slices
 

@@ -1,0 +1,23 @@
+# Phase 4G — opt-in scheduled sharing retention
+
+The repository now defines the named Laravel callback `familyguard-sharing-retention` every five minutes in UTC. It calls the existing `familyguard:prune-sharing` command inside the scheduler process and propagates a nonzero command result as a failure. `withoutOverlapping(60)` prevents another scheduler event using the same cache mutex from starting during the lock lifetime. Normal completion/failure releases it; a hard-killed process can leave the lock until its60minute expiry.
+
+**Disabled by default.** `config/familyguard.php` reads `FAMILYGUARD_SHARING_RETENTION_ENABLED=false`; the scheduled filter requires booleantrue. Only `.env.example` documents the setting; no actual `.env`, OS task/cron/service, database schema, deployment or production setting was changed. Defining this application schedule does not start it. This is unrelated to the deleted Codex development loop, which remains stopped.
+
+## Reviewed activation checklist for deployment
+
+Before an operator enables retention in a deliberate environment:
+
+1. Review/apply required migrations with the normal backup/change process (including consent and usage watermark tables). Never reset an existing database to activate scheduling.
+2. Use a persistent cache store with working atomic locks. Array cache is only appropriate for isolated tests; it cannot coordinate separate scheduler processes. Multiple hosts must use the same shared store/prefix and synchronized clocks, or run one scheduler host. File cache coordinates only processes sharing the same filesystem. Cache lock/permission failures must be investigated, not ignored.
+3. Configure Laravel `schedule:run` once per minute using the intended PHP binary, application folder and environment, or a deliberately supervised `schedule:work` process. Do not add a second independent direct-prune timer expecting the scheduler mutex to cover it. No OS scheduler was installed by this milestone.
+4. Set FAMILYGUARD_SHARING_RETENTION_ENABLED=true in that reviewed environment and rebuild cached configuration through the normal deployment process. Inspect schedule listing and command failures in operator logs; the callback emits no private device/app/location data. A manual direct `familyguard:prune-sharing` remains destructive to eligible rows and is not protected by this scheduled-event mutex.
+5. Verify actual runs/overlap/failure alerting and representative data volume in that environment before activating collection. The tests cover101devices crossing the100device scan boundary; this is correctness evidence, not production throughput/lock-contention measurement. Runs longer than60minutes can outlive the event lock; investigate/tune capacity and lock duration before release. Do not blindly clear scheduler locks while a run may be active; Laravel schedule:clear-cache can affect unrelated scheduled jobs too.
+
+When an enabled scheduler is healthy, physical deletion of newly expired data occurs on the next five-minute run plus runtime; outages can extend that delay. Saved-summary reads independently filter retention/consent, so an overdue prune must not expose expired records. Stop/delete and revocation purge immediately in their transactions and do not wait for scheduling. Ingestion remains unrouted/collectors disabled. Storage policy, missed-run alerting, backup retention and actual operational acceptance remain release work; do not claim exact physical24hour deletion from schedule configuration alone.
+
+## Verification
+
+Six isolated tests cover default-off/strictbooleanoptin/UTCcadence/overlapmetadata, a disabled schedule:run tick preserving data, an enabled tick pruning expired and disabled usage/location/watermarks while retaining boundary-valid rows, a preheld event lock skipping cleanup and then allowing retry after release, failure propagation/mutex release, and101devices crossing the scanner's100row boundary without deleting devices. Scheduler callbacks run in-process against the test application, not a subprocess accidentally reading a development `.env`. Cache is isolated arraystore; shared-host/process cache coordination and OS job execution are not verified by those tests.
+
+All schedule:run and prune invocations during this task were within guarded in-memory SQLite or dedicated familyguard_test PostgreSQL tests. No direct command ran against development/production data. Existing full backend suites must pass on both databases; no unchanged client builds are needed for this application scheduling-only addition. Actual native/browser/Firebase/inbox/currentAPI/hostedCI gaps remain open.
