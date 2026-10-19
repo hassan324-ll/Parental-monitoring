@@ -41,6 +41,7 @@ class PairingRepository : PairingPreviewApi, PairingApprovalApi {
         val connection = (URL(BuildConfig.API_BASE_URL + path).openConnection() as HttpURLConnection)
         try {
             connection.instanceFollowRedirects = false
+            connection.useCaches = false
             connection.requestMethod = "POST"
             connection.connectTimeout = 10000
             connection.readTimeout = 10000
@@ -51,7 +52,7 @@ class PairingRepository : PairingPreviewApi, PairingApprovalApi {
             if (connection.responseCode !in 200..299) {
                 throw IllegalStateException("Pairing request rejected (HTTP ${connection.responseCode}).")
             }
-            return JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            return JSONObject(ApiResponseReader.readUtf8(connection.inputStream))
         } finally {
             connection.disconnect()
         }

@@ -64,17 +64,7 @@ class CompanionSessionRepository : CompanionSessionApi, CompanionRotationApi {
             val status = connection.responseCode
             if (status == 401) throw DeviceUnauthorizedException()
             check(status in 200..299) { "Companion request failed (HTTP $status)." }
-            val buffer = ByteArray(65537)
-            var size = 0
-            connection.inputStream.use { input ->
-                while (size < buffer.size) {
-                    val count = input.read(buffer, size, buffer.size - size)
-                    if (count < 0) break
-                    size += count
-                }
-            }
-            check(size <= 65536) { "Companion response too large." }
-            return JSONObject(String(buffer, 0, size, Charsets.UTF_8))
+            return JSONObject(ApiResponseReader.readUtf8(connection.inputStream))
         } finally {
             connection.disconnect()
         }
