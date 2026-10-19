@@ -397,3 +397,9 @@ Final production build, production dependency audit, implementation commit, repo
 ## Expanded workflow publication result — 19 October 2026
 
 Pushed workflow commit eb3bf585d251bb3d5da45f95ea38966ad8343b9b triggered run39222254744, which completedfailure. Android job117960072669, PostgreSQL job117960072753 and foundation job117960073168 all report failure with null steps/logs. No test command execution is demonstrated, and no successful hosted coverage is claimed. Do not infer a code failure or a specific account/billing cause without GitHub's error details. Inspect https://github.com/hassan324-ll/Parental-monitoring/actions/runs/39222254744 for the actionable platform message. Do not repeatedly rerun unchanged jobs while this condition remains.
+
+## Confirmed hosted blocker from visible GitHub annotations — 19 October 2026
+
+Inspected the actual run page39222254744 in the browser after the human supplied its screenshot. All three job annotations explicitly state: "The job was not started because your account is locked due to a billing issue." This supersedes the earlier unknown-cause assessment. No hosted job/test started; no application compilation failure is demonstrated. The Ubuntu runner migration messages are separate notices, not the reported blocking errors.
+
+The repository owner's GitHub account billing lock must be resolved through GitHub before hosted verification can execute. No payment, billing setting, account configuration or security control was changed, and no unchanged job was rerun. Local verification results remain independent. Preserve the distinction between a validated workflow configuration and an actual hosted pass. Visible source: https://github.com/hassan324-ll/Parental-monitoring/actions/runs/39222254744 .
