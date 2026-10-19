@@ -17,6 +17,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.*
 import com.familyguard.child.ui.CompanionViewModel
+import com.familyguard.child.ui.DeviceSessionViewModel
+import com.familyguard.child.data.DeviceSession
 import com.familyguard.child.ui.PairingViewModel
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -28,6 +30,10 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val pairingState by pairing.state.collectAsStateWithLifecycle()
  val model:CompanionViewModel=viewModel()
  val status by model.status.collectAsStateWithLifecycle()
+ val deviceSession:DeviceSessionViewModel=viewModel()
+ val sessionState by deviceSession.state.collectAsStateWithLifecycle()
+ var confirmDisconnect by remember { mutableStateOf(false) }
+ val sessionBusy=sessionState.phase==DeviceSession.Phase.CHECKING || sessionState.phase==DeviceSession.Phase.DISCONNECTING
  val context=LocalContext.current
  Surface(Modifier.fillMaxSize()){Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState())){
  Text("FamilyGuard Companion",style=MaterialTheme.typography.headlineMedium)
@@ -43,9 +49,9 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  5->"Activity sharing is not implemented. Nothing is being collected."
  6->"Location sharing is not implemented. GPS permission has not been requested."
  7->"No capture is active. Every future session requires fresh Android approval and a visible notification."
- 8->"You control sharing. Revocation must stop collection and end active sessions. Pairing and deletion controls will arrive in a later phase."
+ 8->"You control sharing. Revocation must stop collection and end active sessions. Device status and disconnect are available in Connected Device Home. Pairing approval is not yet available."
  9->"Emulator API: "+BuildConfig.API_BASE_URL+". Release API must be configured before distribution."
- else->"Foundation preview. This device is not paired. No monitoring is active."
+ else->sessionState.message
  })
  if(index==1){
  OutlinedTextField(value=pairingState.code,onValueChange=pairing::updateCode,enabled=!pairingState.busy,label={Text("32-character invitation code")},keyboardOptions=KeyboardOptions(capitalization=KeyboardCapitalization.Characters),singleLine=true)
@@ -61,7 +67,16 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  if(pairingState.message.isNotBlank()) Text(pairingState.message)
  }
  if(index==3)Button(onClick={context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+context.packageName)))}){Text("Review Android permissions")}
- if(index==4||index==9){Text(status);Button(onClick=model::checkHealth){Text("Check API connection")}}
+ if(index==4||index==9){
+ Text(sessionState.message)
+ sessionState.device?.let { Text("Device: "+it.name) }
+ Button(onClick=deviceSession::refresh,enabled=!sessionBusy){Text("Verify device authorization")}
+ Button(onClick={confirmDisconnect=true},enabled=!sessionBusy && sessionState.phase!=DeviceSession.Phase.UNPAIRED){Text("Disconnect device")}
+ Text(status);Button(onClick=model::checkHealth){Text("Check API connection")}
+ }
+ if(confirmDisconnect){
+ AlertDialog(onDismissRequest={confirmDisconnect=false},title={Text("Disconnect this device?")},text={Text("This requests server revocation and removes local credentials after confirmation. If offline, retry or revoke from the parent account.")},confirmButton={TextButton(onClick={confirmDisconnect=false;deviceSession.disconnect()}){Text("Disconnect")}},dismissButton={TextButton(onClick={confirmDisconnect=false}){Text("Cancel")}})
+ }
  }
  }}
  }
