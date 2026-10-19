@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Future device fresh-consent decision (unrouted and disabled)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["acknowledged", "expected_version", "disclosure_version"],
+  "properties": {
+    "acknowledged": {"const": true},
+    "expected_version": {"type": "integer", "minimum": 1},
+    "disclosure_version": {"enum": ["usage-collection-v1", "location-collection-v1"]}
+  },
+  "description": "The disclosure must match the internally selected feature. Current device identity must be derived from credentials, never payload ownership. This schema does not prove a physical tap or Android permission. No public route exists."
+}
