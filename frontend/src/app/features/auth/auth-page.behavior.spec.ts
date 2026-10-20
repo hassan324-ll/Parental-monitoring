@@ -86,6 +86,24 @@ describe('parent authentication forms', () => {
     ).toBe(true);
     expect(auth.register).not.toHaveBeenCalled();
   });
+  it('renders a safe specific registration failure and releases the busy state', async () => {
+    auth.register.mockRejectedValue({
+      code: 'auth/email-already-in-use',
+      message: 'synthetic-private-provider-message',
+    });
+    const f = fixture();
+    f.componentInstance.setMode('register');
+    f.componentInstance.form.setValue({
+      name: 'Synthetic',
+      email: 'parent@example.test',
+      password: 'synthetic-password',
+    });
+    await f.componentInstance.submit();
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('An account already uses this email');
+    expect(f.nativeElement.textContent).not.toContain('synthetic-private-provider-message');
+    expect(f.componentInstance.busy()).toBe(false);
+  });
   it('keeps password reset responses generic', async () => {
     auth.resetPassword.mockRejectedValue(new Error('user-not-found'));
     const f = fixture();

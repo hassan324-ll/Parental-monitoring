@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FirebaseAuthService } from '../../core/firebase-auth.service';
+import { authenticationErrorMessage } from '../../core/authentication-errors';
 
 type AuthMode = 'login' | 'register' | 'reset';
 
@@ -91,12 +92,7 @@ export class AuthPage {
         await this.router.navigateByUrl(localPath);
       }
     } catch (cause: unknown) {
-      const description = cause instanceof Error ? cause.message : '';
-      this.error.set(
-        description.includes('verify your email')
-          ? description
-          : 'Unable to complete the request. Check your details and try again.',
-      );
+      this.error.set(authenticationErrorMessage(cause, this.mode()));
     } finally {
       this.busy.set(false);
     }

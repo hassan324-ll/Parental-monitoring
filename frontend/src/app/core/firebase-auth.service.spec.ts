@@ -113,6 +113,28 @@ describe('Firebase client fail-closed lifecycle', () => {
     auth.currentUser = null;
     expect(await service().idToken()).toBeNull();
   });
+  it('preserves verification failure even when signout also fails', async () => {
+    sdk.sendEmailVerification.mockRejectedValue({ code: 'auth/too-many-requests' });
+    sdk.signOut.mockRejectedValue({ code: 'auth/network-request-failed' });
+    await expect(
+      service().register('Synthetic', 'parent@example.test', 'synthetic-password'),
+    ).rejects.toMatchObject({ stage: 'verification', providerCode: 'auth/too-many-requests' });
+    expect(sdk.signOut).toHaveBeenCalledOnce();
+  });
+  it('identifies profile setup failure after account creation and still signs out', async () => {
+    sdk.updateProfile.mockRejectedValue({ code: 'auth/network-request-failed' });
+    await expect(
+      service().register('Synthetic', 'parent@example.test', 'synthetic-password'),
+    ).rejects.toMatchObject({ stage: 'profile' });
+    expect(sdk.sendEmailVerification).not.toHaveBeenCalled();
+    expect(sdk.signOut).toHaveBeenCalledOnce();
+  });
+  it('identifies signout failure after successful account setup', async () => {
+    sdk.signOut.mockRejectedValue({ code: 'auth/network-request-failed' });
+    await expect(
+      service().register('Synthetic', 'parent@example.test', 'synthetic-password'),
+    ).rejects.toMatchObject({ stage: 'cleanup' });
+  });
   it('delegates password reset and logout to Firebase', async () => {
     await service().resetPassword(' parent@example.test ');
     expect(sdk.sendPasswordResetEmail).toHaveBeenCalledWith(auth, 'parent@example.test');

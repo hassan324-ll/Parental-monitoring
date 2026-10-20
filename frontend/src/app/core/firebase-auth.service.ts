@@ -14,6 +14,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { environment } from '../../environments/environment';
+import { RegistrationCompletionError, firebaseErrorCode } from './authentication-errors';
 
 // Inject the SDK boundary so unit tests cannot accidentally call the real provider.
 export const FIREBASE_CLIENT = new InjectionToken('FamilyGuard Firebase client', {
@@ -67,14 +68,23 @@ export class FirebaseAuthService {
   async register(name: string, email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
     const credential = await this.sdk.createUserWithEmailAndPassword(auth, email.trim(), password);
+    let failure: RegistrationCompletionError | null = null;
+    let stage: 'profile' | 'verification' = 'profile';
     try {
       await this.sdk.updateProfile(credential.user, { displayName: name.trim() });
+      stage = 'verification';
       await this.sdk.sendEmailVerification(credential.user);
+    } catch (cause) {
+      failure = new RegistrationCompletionError(stage, firebaseErrorCode(cause));
     } finally {
-      await this.sdk.signOut(auth);
+      try {
+        await this.sdk.signOut(auth);
+      } catch (cause) {
+        failure ??= new RegistrationCompletionError('cleanup', firebaseErrorCode(cause));
+      }
     }
+    if (failure) throw failure;
   }
-
   async login(email: string, password: string): Promise<void> {
     const auth = this.requireAuth();
     const credential = await this.sdk.signInWithEmailAndPassword(auth, email.trim(), password);
