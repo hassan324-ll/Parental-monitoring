@@ -36,6 +36,7 @@ fun SharingSettings(feature: SharingFeature, state: SharingState, authorized: Bo
         OutlinedButton(onClick = { revision = state.revision; acknowledged = false; pending = false }, enabled = ready) {
             Text("Stop and delete $title data")
         }
+        SharingReadinessReview(feature, authorized, if (state.phase == SharingState.Phase.READY && consent?.enabled == true) consent.version else null, sessionBusy)
         if (!authorized) Text("Verify the device connection before changing preferences. If unavailable, ask the parent to revoke this device.")
     }
     if (pending != null) {
